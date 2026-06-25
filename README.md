@@ -80,6 +80,17 @@ ln -s "$PWD" ~/Documents/Max\ 9/Packages/AmbiTap-Max
 
 Then the externals load and `help/<object>.maxhelp` opens from each object.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` builds all externals universal on macOS and checks
+they came out fat. Because the AmbiTap submodule is a **private** repo, CI needs
+a token with read access to it — add a repo secret `AMBITAP_PAT` (a fine-grained
+PAT scoped to `tap/AmbiTap`, Contents: Read-only, or a classic `repo`-scope PAT):
+
+```bash
+gh secret set AMBITAP_PAT --repo tap/AmbiTap-Max
+```
+
 ## Roadmap
 
 - **Multichannel + runtime order — solved for `encode~`.** min-api wraps MC

@@ -1,0 +1,64 @@
+name: CI
+
+# Builds the AmbiTap-Max externals (universal x86_64 + arm64) on macOS and
+# checks all 11 bundles came out fat.
+#
+# ONE-TIME SETUP — required because the AmbiTap submodule is a PRIVATE repo and
+# the default GITHUB_TOKEN cannot read a different private repo. Create a token
+# with read access to tap/AmbiTap and add it as the repo secret AMBITAP_PAT:
+#
+#   - Preferred: a fine-grained PAT scoped to tap/AmbiTap (and this repo),
+#     Repository permissions -> Contents: Read-only.
+#   - Or a classic PAT with the "repo" scope.
+#
+#   gh secret set AMBITAP_PAT --repo tap/AmbiTap-Max     # paste the token
+#
+# Until that secret exists, the "Require AMBITAP_PAT" step fails with a hint.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Require AMBITAP_PAT secret (private AmbiTap submodule)
+        run: |
+          if [ -z "${{ secrets.AMBITAP_PAT }}" ]; then
+            echo "::error::Set the AMBITAP_PAT repo secret to a token with read access to the private tap/AmbiTap submodule (see .github/workflows/ci.yml)."
+            exit 1
+          fi
+
+      - name: Checkout (recursive — pulls min-api + private AmbiTap)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.AMBITAP_PAT }}
+
+      - name: Configure (universal)
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Verify 11 universal externals
+        run: |
+          set -euo pipefail
+          count=$(ls -d externals/*.mxo | wc -l | tr -d ' ')
+          echo "built $count externals"
+          if [ "$count" -ne 11 ]; then
+            echo "::error::expected 11 externals, got $count"; exit 1
+          fi
+          fail=0
+          for mxo in externals/*.mxo; do
+            bin="$mxo/Contents/MacOS/$(basename "$mxo" .mxo)"
+            archs=$(lipo -archs "$bin")
+            echo "  $(basename "$mxo"): $archs"
+            [ "$archs" = "x86_64 arm64" ] || fail=1
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::one or more externals are not universal (x86_64 arm64)"; exit 1
+          fi
+          echo "all 11 externals are universal"
