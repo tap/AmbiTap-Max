@@ -1,0 +1,12 @@
+{
+	"name": "AmbiTap",
+	"version": "0.0.1",
+	"author": "Timothy Place",
+	"description": "Ambisonics externals for Max/MSP, built on the AmbiTap library.",
+	"tags": ["ambisonics", "audio", "spatial", "mc"],
+	"max_version_min": "8.0.0",
+	"max_version_max": "none",
+	"os": {
+		"macintosh": { "platform": ["x64", "arm64"] }
+	}
+}
