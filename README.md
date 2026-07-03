@@ -83,13 +83,8 @@ Then the externals load and `help/<object>.maxhelp` opens from each object.
 ## Continuous integration
 
 `.github/workflows/ci.yml` builds all externals universal on macOS and checks
-they came out fat. Because the AmbiTap submodule is a **private** repo, CI needs
-a token with read access to it — add a repo secret `AMBITAP_PAT` (a fine-grained
-PAT scoped to `tap/AmbiTap`, Contents: Read-only, or a classic `repo`-scope PAT):
-
-```bash
-gh secret set AMBITAP_PAT --repo tap/AmbiTap-Max
-```
+they came out fat. Both this repo and the AmbiTap submodule are public, so the
+recursive checkout needs no token.
 
 ## Roadmap
 
