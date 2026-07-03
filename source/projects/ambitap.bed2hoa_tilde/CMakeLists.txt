@@ -1,29 +1,15 @@
-# ambitap.binaural~ — HOA → binaural stereo via SH-HRTF convolution.
+# ambitap.bed2hoa~ — surround bed (5.1/7.1/…) → HOA via canonical directions.
 
 cmake_minimum_required(VERSION 3.19)
 
 set(C74_MIN_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../min-api)
 include(${C74_MIN_API_DIR}/script/min-pretarget.cmake)
 
-include_directories(
-    "${C74_INCLUDES}"
-)
+include_directories("${C74_INCLUDES}")
+set(SOURCE_FILES ${PROJECT_NAME}.cpp)
+add_library(${PROJECT_NAME} MODULE ${SOURCE_FILES})
 
-set(SOURCE_FILES
-    ${PROJECT_NAME}.cpp
-)
-
-add_library(
-    ${PROJECT_NAME}
-    MODULE
-    ${SOURCE_FILES}
-)
-
-# AmbiTap headers + Eigen (head-tracking rotation) + AmbiTap::fft (the vendored
-# Ooura rdft that the partitioned convolver calls) + the ambitap interface
-# target (carries libmysofa and the AMBITAP_HAS_SOFA define when SOFA is on).
 target_include_directories(${PROJECT_NAME} PRIVATE "${AmbiTap_ROOT}/include")
-target_link_libraries(${PROJECT_NAME} PRIVATE Eigen3::Eigen AmbiTap::fft ambitap)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 include(${C74_MIN_API_DIR}/script/min-posttarget.cmake)
