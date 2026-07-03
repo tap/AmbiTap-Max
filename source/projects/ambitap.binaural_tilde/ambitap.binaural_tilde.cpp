@@ -1,21 +1,29 @@
 /// @file
 /// ambitap.binaural~ — decode a higher-order ambisonics bus to binaural stereo
-/// via SH-domain HRTF convolution (built-in MIT KEMAR, orders 1-5), with
-/// internal head-tracking.
+/// via SH-domain HRTF convolution (built-in MIT KEMAR, orders 1-5, or a
+/// user-supplied SOFA file via the `sofa` attribute), with internal
+/// head-tracking.
 ///
 /// Order is a creation argument (default 1, capped at 5 by the built-in HRTF).
 /// Input is one multichannel signal of (order+1)^2 channels; output is two
 /// signals (left, right). DSP lives in ambitap::dsp::binaural_renderer: a
 /// partitioned-FFT convolver bank (AmbiTap::fft) plus an async head-tracking
 /// SH-rotation. Convolvers are (re)allocated for the host's signal vector size
-/// in `dspsetup`; the audio path is wait-free.
+/// and sample rate in `dspsetup`; the audio path is wait-free. SOFA loading
+/// happens on the control thread: measurements are projected onto the SH basis
+/// at this object's order (decompose_sh) and resampled to the host rate.
 
 #include "c74_min.h"
 
 #include "ambitap/dsp/binaural_renderer.h"
+#ifdef AMBITAP_HAS_SOFA
+#include "ambitap/math/binaural/resample.h"
+#include "ambitap/math/binaural/sofa_reader.h"
+#endif
 
 #include <algorithm>
 #include <memory>
+#include <string>
 #include <vector>
 
 using namespace c74::min;
@@ -23,7 +31,8 @@ using namespace c74::min;
 class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
 public:
     MIN_DESCRIPTION {"Decode a higher-order ambisonics bus to binaural stereo via SH-domain "
-                     "HRTF convolution (built-in MIT KEMAR, orders 1-5), with head-tracking."};
+                     "HRTF convolution (built-in MIT KEMAR or a SOFA file, orders 1-5), "
+                     "with head-tracking."};
     MIN_TAGS {"audio, ambisonics, spatial, binaural, mc"};
     MIN_AUTHOR {"Timothy Place"};
     MIN_RELATED {"ambitap.encode~, ambitap.rotate~, ambitap.decode~"};
@@ -67,6 +76,41 @@ public:
         }}
     };
 
+    attribute<symbol> sofa {
+        this, "sofa", "",
+        description {"Path to a SOFA file with HRTF measurements to use instead of the "
+                     "built-in KEMAR set (absolute path, or resolvable in the Max search "
+                     "path). An empty symbol reverts to the built-in set. Loading projects "
+                     "the measurements onto the SH basis at this object's order and rebuilds "
+                     "convolvers — not real-time safe, may glitch briefly."},
+        setter {MIN_FUNCTION {
+#ifdef AMBITAP_HAS_SOFA
+            const std::string requested = static_cast<std::string>(args[0]);
+            if (requested.empty()) {
+                m_sofa.reset();
+                if (m_renderer)
+                    m_renderer->clear_custom_hrtf();
+                return args;
+            }
+            try {
+                auto loaded = std::make_unique<ambitap::hrtf_data>(
+                    ambitap::load_sofa(resolve_in_search_path(requested)));
+                m_sofa = std::move(loaded);
+                apply_sofa_hrtf();    // no-op until dspsetup when not yet prepared
+                return args;
+            }
+            catch (const std::exception& e) {
+                cerr << e.what() << endl;
+                return {sofa.get()};    // keep the previous value
+            }
+#else
+            if (!static_cast<std::string>(args[0]).empty())
+                cerr << "this build has no SOFA support (AMBITAP_ENABLE_SOFA was off)" << endl;
+            return args;
+#endif
+        }}
+    };
+
     attribute<number> yaw {
         this, "yaw", 0.0,
         description {"Head-tracking yaw about +Z (up), radians. Applied first."},
@@ -100,13 +144,14 @@ public:
         }}
     };
 
-    /// Allocate the convolver bank for the host's signal vector size. Called by
-    /// Max whenever the dsp chain is (re)compiled.
+    /// Allocate the convolver bank for the host's signal vector size and sample
+    /// rate. Called by Max whenever the dsp chain is (re)compiled.
     message<> dspsetup {
         this, "dspsetup",
         MIN_FUNCTION {
-            const long vector_size = args[1];
-            prepare_renderer(vector_size);
+            const double sample_rate = args[0];
+            const long   vector_size = args[1];
+            prepare_renderer(vector_size, sample_rate);
             return {};
         }
     };
@@ -158,15 +203,70 @@ private:
     std::vector<const float*>                        m_in_ptrs;     // into m_in_buffers
     std::vector<float>                               m_left_buf;
     std::vector<float>                               m_right_buf;
+#ifdef AMBITAP_HAS_SOFA
+    std::unique_ptr<ambitap::hrtf_data>              m_sofa;    // raw measurements, file rate
 
-    void prepare_renderer(long vector_size) {
+    // Cap the decomposed FIR length: bounds convolver cost against
+    // pathologically long measurement files.
+    static constexpr size_t k_max_sofa_taps = 2048;
+
+    /// Resolve a filename through the Max search path to an absolute system
+    /// path; a name that cannot be located passes through unchanged (it may be
+    /// an absolute path already).
+    static std::string resolve_in_search_path(const std::string& name) {
+        char filename[c74::max::MAX_PATH_CHARS];
+        std::snprintf(filename, sizeof(filename), "%s", name.c_str());
+        short             path_id {};
+        c74::max::t_fourcc type {};
+        if (c74::max::locatefile_extended(filename, &path_id, &type, nullptr, 0) == 0) {
+            char absolute[c74::max::MAX_PATH_CHARS];
+            if (c74::max::path_toabsolutesystempath(path_id, filename, absolute) == 0)
+                return absolute;
+        }
+        return name;
+    }
+
+    /// Project the loaded SOFA measurements onto the SH basis at this object's
+    /// order, resample the decomposed FIRs to the host rate, and hand them to
+    /// the renderer. No-op when nothing is loaded or DSP is not yet prepared
+    /// (dspsetup calls back in here once the host rate is known).
+    void apply_sofa_hrtf() {
+        if (!m_sofa || !m_renderer || !m_renderer->is_prepared())
+            return;
+        try {
+            std::vector<std::vector<float>> left, right;
+            m_sofa->decompose_sh(m_renderer->order(), k_max_sofa_taps, left, right);
+            const float host_rate = m_renderer->sample_rate();
+            if (m_sofa->sample_rate != host_rate) {
+                for (auto* ear : {&left, &right}) {
+                    for (auto& fir : *ear)
+                        fir = ambitap::resample_fir(fir.data(), fir.size(), m_sofa->sample_rate,
+                                                    host_rate);
+                }
+            }
+            m_renderer->set_custom_hrtf(std::move(left), std::move(right));
+        }
+        catch (const std::exception& e) {
+            // e.g. a measurement grid that cannot support this order: report,
+            // drop the set, and stay on the built-in HRTFs.
+            cerr << e.what() << endl;
+            m_sofa.reset();
+            m_renderer->clear_custom_hrtf();
+        }
+    }
+#else
+    void apply_sofa_hrtf() {}
+#endif
+
+    void prepare_renderer(long vector_size, double sample_rate) {
         const bool valid = (vector_size >= 4) && ((vector_size & (vector_size - 1)) == 0);
         if (!valid) {
             m_block_size = 0;    // unsupported vector size -> stay silent
             return;
         }
         m_block_size = vector_size;
-        m_renderer->prepare(static_cast<size_t>(vector_size));
+        m_renderer->prepare(static_cast<size_t>(vector_size), static_cast<float>(sample_rate));
+        apply_sofa_hrtf();    // custom FIRs are resampled per host rate; re-derive
 
         const auto n = static_cast<size_t>(m_channels);
         const auto v = static_cast<size_t>(vector_size);

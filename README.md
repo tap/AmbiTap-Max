@@ -24,11 +24,18 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
   (mode_match / allrad / epad) and `max_re` rebuild the matrix off-thread.
   Wraps `ambitap::dsp::decoder`.
 - **`ambitap.binaural~`** — HOA bus → binaural stereo (two outlets) via SH-domain
-  HRTF convolution (built-in MIT KEMAR, orders 1–5), with internal head-tracking.
-  Attributes: `volume`, `hrtf_dataset` (ls/magls), `yaw`/`pitch`/`roll`. The
-  convolver bank is allocated for the host vector size in `dspsetup`. Wraps
-  `ambitap::dsp::binaural_renderer`; links `AmbiTap::fft` (Ooura) for the
-  partitioned convolution.
+  HRTF convolution (built-in MIT KEMAR, orders 1–5, or a user SOFA file), with
+  internal head-tracking. Attributes: `volume`, `hrtf_dataset` (ls/magls),
+  `sofa` (path to a SOFA file — measurements are projected onto the SH basis at
+  this object's order and resampled to the host rate; empty reverts to KEMAR),
+  `yaw`/`pitch`/`roll`. The convolver bank is allocated for the host vector size
+  and sample rate in `dspsetup`. Wraps `ambitap::dsp::binaural_renderer`; links
+  `AmbiTap::fft` (Ooura) for the partitioned convolution and libmysofa (fetched
+  by the AmbiTap submodule's CMake with `AMBITAP_ENABLE_SOFA=ON`) for SOFA.
+- **`ambitap.bed2hoa~`** — channel-based surround bed (5.1 / 7.1 / 7.1.4 / …) →
+  HOA, encoding each speaker feed at its canonical direction. Creation args
+  `<order> <layout>` (same layout set as `ambitap.decode~`; no LFE — route it
+  around the bus). Static encoding matrix; MC in/out.
 - **`ambitap.mirror~`** — LR / FB / UD sign-flip mirror (`flip_lr`/`flip_fb`/
   `flip_ud`). MC in/out.
 - **`ambitap.format~`** — FuMa ↔ AmbiX conversion (orders 0–3; `direction`). MC in/out.
@@ -98,9 +105,10 @@ next. Status of this repo against it:
   where the output is an HOA bus. **Channel negotiation still needs in-Max
   verification** (load `ambitap.encode~ 5`, confirm 36 channels into an
   `mc.*` object) — none of these objects has been exercised in a running Max.
-- **Wave 2 gaps:** `binaural~` has no SOFA-HRTF loading attribute yet (the
-  library's `sofa_reader` + `decompose_sh` make this nearly free); no
-  surround-bed → HOA encode mode (`bed2hoa`).
+- **Wave 2 — code complete:** `binaural~` loads user HRTFs via the `sofa`
+  attribute (library `sofa_reader` + `decompose_sh`, resampled to the host
+  rate), and `ambitap.bed2hoa~` encodes 5.1/7.1/7.1.4 beds into the HOA
+  domain. Like Wave 1, still needs in-Max verification.
 - **Wave 3 (object line):** `panbin~`, `distance~`, `xtc~`, `room~` — not
   started; see the roadmap for scope and the measurement/listening gate on
   the perceptual ones.

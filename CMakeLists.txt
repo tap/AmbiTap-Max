@@ -44,9 +44,12 @@ endif ()
 # Build AmbiTap's targets so objects can pull in what they need:
 #  - Eigen3::Eigen   (rotate / decode / binaural matrix math)
 #  - AmbiTap::fft    (binaural convolution)
+#  - ambitap         (interface target; with SOFA on it carries libmysofa and
+#                     defines AMBITAP_HAS_SOFA for the binaural~ `sofa` attr)
 # Header-only objects (encode) just use ${AmbiTap_ROOT}/include directly.
 # AmbiTap resolves Eigen via find_package then a pinned FetchContent download;
 # tests are off here because it is not the top-level project.
+set(AMBITAP_ENABLE_SOFA ON CACHE BOOL "SOFA HRTF loading for ambitap.binaural~")
 add_subdirectory(${AmbiTap_ROOT} ${CMAKE_CURRENT_BINARY_DIR}/ambitap EXCLUDE_FROM_ALL)
 
 # Min-Lib, if present (header/static helpers shared across objects).

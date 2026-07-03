@@ -416,6 +416,57 @@
       ""
      ]
     }
+   },
+   {
+    "box": {
+     "id": "obj-24",
+     "maxclass": "comment",
+     "numinlets": 1,
+     "numoutlets": 0,
+     "patching_rect": [
+      480.0,
+      372.0,
+      380.0,
+      33.0
+     ],
+     "text": "sofa: load HRTFs from a SOFA file (projected onto the SH basis at this order); empty reverts to the built-in KEMAR set"
+    }
+   },
+   {
+    "box": {
+     "id": "obj-25",
+     "maxclass": "message",
+     "numinlets": 2,
+     "numoutlets": 1,
+     "patching_rect": [
+      480.0,
+      410.0,
+      260.0,
+      22.0
+     ],
+     "text": "sofa my_measurements.sofa",
+     "outlettype": [
+      ""
+     ]
+    }
+   },
+   {
+    "box": {
+     "id": "obj-26",
+     "maxclass": "message",
+     "numinlets": 2,
+     "numoutlets": 1,
+     "patching_rect": [
+      480.0,
+      436.0,
+      60.0,
+      22.0
+     ],
+     "text": "sofa",
+     "outlettype": [
+      ""
+     ]
+    }
    }
   ],
   "lines": [
@@ -583,6 +634,30 @@
      ],
      "source": [
       "obj-23",
+      0
+     ]
+    }
+   },
+   {
+    "patchline": {
+     "destination": [
+      "obj-6",
+      0
+     ],
+     "source": [
+      "obj-25",
+      0
+     ]
+    }
+   },
+   {
+    "patchline": {
+     "destination": [
+      "obj-6",
+      0
+     ],
+     "source": [
+      "obj-26",
       0
      ]
     }
