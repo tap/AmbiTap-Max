@@ -1,4 +1,4 @@
-build/
+build*/
 externals/*.mxo
 externals/*.mxe64
 .DS_Store
