@@ -93,15 +93,24 @@ gh secret set AMBITAP_PAT --repo tap/AmbiTap-Max
 
 ## Roadmap
 
-- **Multichannel + runtime order — solved for `encode~`.** min-api wraps MC
-  *inlets* (`Z_MC_INLETS`) but not MC *outputs*, so `ambitap.encode~` registers
-  Max's `multichanneloutputs` method itself via a `maxclass_setup` message (a
-  `vector_operator` with one `"signal"` outlet that reports `(order+1)²`
-  channels). This is the reusable MC pattern for the rest of the object set.
-  Builds clean; **channel negotiation still needs in-Max verification** (load
-  `ambitap.encode~ 5`, confirm 36 channels into an `mc.*` object).
-- Then the rest of the object set: `ambitap.decode~`, `ambitap.rotate~`,
-  `ambitap.binaural~`, `ambitap.mirror~`, `ambitap.format~`, `ambitap.vmic~`,
-  `ambitap.doppler~`, `ambitap.compress~`, `ambitap.energyvec~`.
+The product plan lives in the AmbiTap library repo: **`docs/ROADMAP.md`**
+(wrappers + object line). That document is the authority on what gets built
+next. Status of this repo against it:
+
+- **Wave 1 (encode / rotate / decode / binaural) — code complete**, plus seven
+  further objects (mirror, format, vmic, directional, doppler, compress,
+  energyvec). All register MC outputs via the `multichanneloutputs` pattern
+  where the output is an HOA bus. **Channel negotiation still needs in-Max
+  verification** (load `ambitap.encode~ 5`, confirm 36 channels into an
+  `mc.*` object) — none of these objects has been exercised in a running Max.
+- **Wave 2 gaps:** `binaural~` has no SOFA-HRTF loading attribute yet (the
+  library's `sofa_reader` + `decompose_sh` make this nearly free); no
+  surround-bed → HOA encode mode (`bed2hoa`).
+- **Wave 3 (object line):** `panbin~`, `distance~`, `xtc~`, `room~` — not
+  started; see the roadmap for scope and the measurement/listening gate on
+  the perceptual ones.
 - UI: `jit.matrix` soundfield heatmap, JSUI direction picker / polar meter
   (see the portability plan's UI section).
+
+Note the externals compile as **C++20** (AmbiTap requires it); each project's
+CMakeLists re-raises `CXX_STANDARD` after `min-posttarget.cmake` pins it to 17.
