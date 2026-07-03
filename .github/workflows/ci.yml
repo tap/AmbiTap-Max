@@ -1,7 +1,7 @@
 name: CI
 
 # Builds the AmbiTap-Max externals (universal x86_64 + arm64) on macOS and
-# checks all 12 bundles came out fat. Both this repo and the AmbiTap submodule
+# checks all 14 bundles came out fat. Both this repo and the AmbiTap submodule
 # are public, so the default GITHUB_TOKEN suffices for the recursive checkout.
 
 on:
@@ -24,13 +24,13 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Verify 12 universal externals
+      - name: Verify 14 universal externals
         run: |
           set -euo pipefail
           count=$(ls -d externals/*.mxo | wc -l | tr -d ' ')
           echo "built $count externals"
-          if [ "$count" -ne 12 ]; then
-            echo "::error::expected 12 externals, got $count"; exit 1
+          if [ "$count" -ne 14 ]; then
+            echo "::error::expected 14 externals, got $count"; exit 1
           fi
           fail=0
           for mxo in externals/*.mxo; do
@@ -42,4 +42,4 @@ jobs:
           if [ "$fail" -ne 0 ]; then
             echo "::error::one or more externals are not universal (x86_64 arm64)"; exit 1
           fi
-          echo "all 12 externals are universal"
+          echo "all 14 externals are universal"
