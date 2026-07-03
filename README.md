@@ -49,6 +49,16 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
   (`threshold`/`ratio`/`attack`/`release`/`makeup_gain`). MC in/out.
 - **`ambitap.energyvec~`** — active-intensity DOA: MC HOA → x / y / z signals
   (`smoothing_time`).
+- **`ambitap.panbin~`** — direct per-source binaural panner: mono + (`azimuth`/
+  `elevation`) → stereo through a per-direction HRTF (order-5 KEMAR SH set),
+  no ambisonic bus, no order-limited blur. Direction changes crossfade
+  click-free via a lock-free convolver-pair handoff; the audio path never
+  allocates. Complements encode~ → binaural~ at small source counts.
+- **`ambitap.distance~`** — distance cues for an HOA bus: Doppler delay →
+  1/r gain (`attenuation` exponent) → air-absorption low-pass → near-field
+  compensation (`dsp::nfc`, per-order shelving). Attributes: `distance`,
+  `reference_distance`, `attenuation`, `air_absorption`, `speed_of_sound`,
+  `max_distance`, `doppler`/`nfc` toggles. MC in/out.
 
 ## Layout
 
@@ -109,9 +119,10 @@ next. Status of this repo against it:
   attribute (library `sofa_reader` + `decompose_sh`, resampled to the host
   rate), and `ambitap.bed2hoa~` encodes 5.1/7.1/7.1.4 beds into the HOA
   domain. Like Wave 1, still needs in-Max verification.
-- **Wave 3 (object line):** `panbin~`, `distance~`, `xtc~`, `room~` — not
-  started; see the roadmap for scope and the measurement/listening gate on
-  the perceptual ones.
+- **Wave 3 (object line):** `panbin~` and `distance~` (with the library's new
+  `dsp::nfc`) — code complete. `xtc~` and `room~` — not started; gated on the
+  measurement + listening protocol now defined in the library's
+  `docs/PERCEPTUAL-VERIFICATION.md`.
 - UI: `jit.matrix` soundfield heatmap, JSUI direction picker / polar meter
   (see the portability plan's UI section).
 
