@@ -59,6 +59,14 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
   compensation (`dsp::nfc`, per-order shelving). Attributes: `distance`,
   `reference_distance`, `attenuation`, `air_absorption`, `speed_of_sound`,
   `max_distance`, `doppler`/`nfc` toggles. MC in/out.
+- **`ambitap.xtc~`** — transaural crosstalk cancellation: stereo/binaural →
+  two loudspeakers at a known symmetric geometry (`span` degrees, `distance`
+  meters), designed per-geometry from the KEMAR plant via `dsp::xtc`
+  (regularized 2×2 inversion; gates X1–X6 of the library's
+  `docs/PERCEPTUAL-VERIFICATION.md` pass in its test suite). Attributes:
+  `span`, `distance`, `regularization`, `bypass` (ramped, for the listening
+  protocol's A/B). 512-sample latency; output sits ~12 dB below bypass
+  (the gain-ceiling makeup) — loudness-match upstream when comparing.
 
 ## Layout
 
@@ -119,10 +127,12 @@ next. Status of this repo against it:
   attribute (library `sofa_reader` + `decompose_sh`, resampled to the host
   rate), and `ambitap.bed2hoa~` encodes 5.1/7.1/7.1.4 beds into the HOA
   domain. Like Wave 1, still needs in-Max verification.
-- **Wave 3 (object line):** `panbin~` and `distance~` (with the library's new
-  `dsp::nfc`) — code complete. `xtc~` and `room~` — not started; gated on the
-  measurement + listening protocol now defined in the library's
-  `docs/PERCEPTUAL-VERIFICATION.md`.
+- **Wave 3 (object line):** `panbin~`, `distance~` (library `dsp::nfc`), and
+  `xtc~` (library `dsp::xtc`, numeric gates X1–X6 green) — code complete;
+  the perceptual objects still owe the listening pass (bypass rule) from the
+  library's `docs/PERCEPTUAL-VERIFICATION.md`. `room~` — harness phase done
+  (R1–R10 notebook, FDN architecture selected by the numbers); the real-time
+  C++ FDN and its external are the remaining build.
 - UI: `jit.matrix` soundfield heatmap, JSUI direction picker / polar meter
   (see the portability plan's UI section).
 
