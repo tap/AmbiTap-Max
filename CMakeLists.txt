@@ -19,10 +19,13 @@ if (WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
     if (MSVC)
         # /bigobj: Eigen- and min-api-heavy TUs blow past the COFF section limit.
+        add_compile_options(/bigobj)
         # /FIalgorithm: min-api's c74_min_limit.h does `using std::clamp;` without
         #   including <algorithm>; it resolves transitively on AppleClang/libc++
-        #   but not on MSVC's STL, so force-include it first in every TU.
-        add_compile_options(/bigobj /FIalgorithm)
+        #   but not on MSVC's STL, so force-include it. C++ ONLY — force-including
+        #   a C++ STL header into the C sources (Ooura FFT, libmysofa) trips
+        #   "STL1003: expected C++ compiler".
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/FIalgorithm>)
     endif ()
 endif ()
 
