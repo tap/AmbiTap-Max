@@ -25,6 +25,16 @@ public:
     inlet<>  m_in {this, "(multichannelsignal) HOA bus"};
     outlet<> m_out {this, "(signal) extracted mono", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    std::unique_ptr<ambitap::dsp::virtual_mic> m_mic;
+    long                                       m_channels {4};
+    std::vector<float>                         m_in_frame;
+
+public:
     explicit ambitap_vmic(const atoms& args = {}) {
         int order = 1;
         if (!args.empty())
@@ -78,11 +88,6 @@ public:
             o[i] = m_mic->process_frame(m_in_frame.data());
         }
     }
-
-private:
-    std::unique_ptr<ambitap::dsp::virtual_mic> m_mic;
-    long                                       m_channels {4};
-    std::vector<float>                         m_in_frame;
 };
 
 MIN_EXTERNAL(ambitap_vmic);

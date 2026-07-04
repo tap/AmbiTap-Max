@@ -29,6 +29,17 @@ public:
     inlet<>  m_in {this, "(multichannelsignal) HOA bus"};
     outlet<> m_out {this, "(multichannelsignal) rotated HOA bus, (order+1)^2 channels", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    std::unique_ptr<ambitap::dsp::rotator> m_rotator;
+    long                                   m_channel_count {4};
+    std::vector<float>                     m_in_frame;   // sized once, reused (RT-safe)
+    std::vector<float>                     m_out_frame;
+
+public:
     /// First creation argument is the ambisonics order (default 1).
     explicit ambitap_rotate(const atoms& args = {}) {
         int order = 1;
@@ -106,11 +117,6 @@ public:
     }
 
 private:
-    std::unique_ptr<ambitap::dsp::rotator> m_rotator;
-    long                                   m_channel_count {4};
-    std::vector<float>                     m_in_frame;   // sized once, reused (RT-safe)
-    std::vector<float>                     m_out_frame;
-
     static long mc_outputs(minwrap<ambitap_rotate>* self, long /* outlet_index */) {
         return self->m_min_object.m_channel_count;
     }

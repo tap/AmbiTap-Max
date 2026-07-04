@@ -29,6 +29,15 @@ public:
     inlet<>  m_in {this, "(signal) mono source"};
     outlet<> m_out {this, "(multichannelsignal) HOA bus, (order+1)^2 channels (ACN/SN3D)", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    std::unique_ptr<ambitap::dsp::encoder> m_encoder;
+    long                                   m_channel_count {4};
+
+public:
     /// First creation argument is the ambisonics order (default 1).
     explicit ambitap_encode(const atoms& args = {}) {
         int order = 1;
@@ -100,9 +109,6 @@ public:
     }
 
 private:
-    std::unique_ptr<ambitap::dsp::encoder> m_encoder;
-    long                                   m_channel_count {4};
-
     /// Max calls this (per outlet) to learn the channel count. Signature is
     /// long(t_object*, long); the t_object is the min wrapper instance.
     static long mc_outputs(minwrap<ambitap_encode>* self, long /* outlet_index */) {
