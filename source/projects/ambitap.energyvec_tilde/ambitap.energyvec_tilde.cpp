@@ -25,6 +25,14 @@ public:
     outlet<> m_y {this, "(signal) Y intensity (left +)", "signal"};
     outlet<> m_z {this, "(signal) Z intensity (up +)", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    ambitap::analysis::energy_vector m_estimator;
+
+public:
     attribute<number> smoothing_time {
         this, "smoothing_time", 0.01,
         description {"One-pole smoothing time constant in seconds (~10 ms is usable)."},
@@ -63,9 +71,6 @@ public:
             oz[i] = static_cast<double>(out3[2]);
         }
     }
-
-private:
-    ambitap::analysis::energy_vector m_estimator;
 };
 
 MIN_EXTERNAL(ambitap_energyvec);

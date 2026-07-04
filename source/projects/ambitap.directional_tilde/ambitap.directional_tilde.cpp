@@ -24,6 +24,17 @@ public:
     inlet<>  m_in {this, "(multichannelsignal) HOA bus"};
     outlet<> m_out {this, "(multichannelsignal) shaped HOA bus", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    std::unique_ptr<ambitap::dsp::directional_loudness> m_loudness;
+    long                                                m_channel_count {4};
+    std::vector<float>                                  m_in_frame;
+    std::vector<float>                                  m_out_frame;
+
+public:
     explicit ambitap_directional(const atoms& args = {}) {
         int order = 1;
         if (!args.empty())
@@ -92,11 +103,6 @@ public:
     }
 
 private:
-    std::unique_ptr<ambitap::dsp::directional_loudness> m_loudness;
-    long                                                m_channel_count {4};
-    std::vector<float>                                  m_in_frame;
-    std::vector<float>                                  m_out_frame;
-
     static long mc_outputs(minwrap<ambitap_directional>* self, long) {
         return self->m_min_object.m_channel_count;
     }
