@@ -67,6 +67,14 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
   `span`, `distance`, `regularization`, `bypass` (ramped, for the listening
   protocol's A/B). 512-sample latency; output sits ~12 dB below bypass
   (the gain-ceiling makeup) — loudness-match upstream when comparing.
+- **`ambitap.room~`** — shoebox room: mono source → HOA bus carrying direct
+  path + image-source early reflections + a 16-line SH-domain FDN tail
+  (`dsp::room`, the architecture selected and verified by the library's
+  R1–R10 harness). Creation arg `<order>` (max 3). Attributes: `dim_x/y/z`,
+  `source_x/y/z`, `listener_x/y/z`, `rt60` (plus `rt60band <hz> <sec>` and
+  `reflections <6 floats>` messages), `direct`/`er`/`tail` toggles, `gain`.
+  Fixed ~53 ms latency at 48 kHz (injection alignment inherent to the
+  verified design; `latency_samples()` exposed for hosts that compensate).
 
 ## Layout
 
@@ -127,12 +135,12 @@ next. Status of this repo against it:
   attribute (library `sofa_reader` + `decompose_sh`, resampled to the host
   rate), and `ambitap.bed2hoa~` encodes 5.1/7.1/7.1.4 beds into the HOA
   domain. Like Wave 1, still needs in-Max verification.
-- **Wave 3 (object line):** `panbin~`, `distance~` (library `dsp::nfc`), and
-  `xtc~` (library `dsp::xtc`, numeric gates X1–X6 green) — code complete;
-  the perceptual objects still owe the listening pass (bypass rule) from the
-  library's `docs/PERCEPTUAL-VERIFICATION.md`. `room~` — harness phase done
-  (R1–R10 notebook, FDN architecture selected by the numbers); the real-time
-  C++ FDN and its external are the remaining build.
+- **Wave 3 (object line) — code complete.** `panbin~`, `distance~` (library
+  `dsp::nfc`), `xtc~` (library `dsp::xtc`, gates X1–X6 green), and `room~`
+  (library `dsp::room`, whose C++ render passes the same R1–R10 harness that
+  selected its FDN architecture). The perceptual objects (`xtc~`, `room~`)
+  still owe the listening pass (bypass rule) from the library's
+  `docs/PERCEPTUAL-VERIFICATION.md` before they ship in a release.
 - UI: `jit.matrix` soundfield heatmap, JSUI direction picker / polar meter
   (see the portability plan's UI section).
 
