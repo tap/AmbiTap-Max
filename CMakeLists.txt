@@ -29,6 +29,15 @@ if (APPLE)
 endif ()
 
 # Min-API CMake helpers (SUBDIRLIST, package layout, pre/post target scripts).
+#
+# max-package.cmake only reads the version (into PACKAGE_VERSION) when a
+# package-info.json.in *template* is present; this package ships a static
+# package-info.json, so that block is skipped and PACKAGE_VERSION is left empty.
+# On Windows that trips the verinfo step's string(REPLACE "." "," PACKAGE_VERSION
+# ${PACKAGE_VERSION}) — "requires at least four arguments" — while macOS skips
+# the WIN32-only verinfo entirely. Provide the version (matching
+# package-info.json) so the Windows build configures.
+set(PACKAGE_VERSION "0.0.1")
 include(${CMAKE_CURRENT_SOURCE_DIR}/source/min-api/script/min-package.cmake)
 
 # AmbiTap: the shared ambisonics library, pinned as the submodules/AmbiTap
