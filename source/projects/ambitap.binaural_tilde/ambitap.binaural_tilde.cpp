@@ -41,6 +41,27 @@ public:
     outlet<> m_out_left {this, "(signal) left", "signal"};
     outlet<> m_out_right {this, "(signal) right", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    std::unique_ptr<ambitap::dsp::binaural_renderer> m_renderer;
+    long                                             m_channels {4};
+    long                                             m_block_size {0};
+    std::vector<std::vector<float>>                  m_in_buffers;  // [channel][block]
+    std::vector<const float*>                        m_in_ptrs;     // into m_in_buffers
+    std::vector<float>                               m_left_buf;
+    std::vector<float>                               m_right_buf;
+#ifdef AMBITAP_HAS_SOFA
+    std::unique_ptr<ambitap::hrtf_data>              m_sofa;    // raw measurements, file rate
+
+    // Cap the decomposed FIR length: bounds convolver cost against
+    // pathologically long measurement files.
+    static constexpr size_t k_max_sofa_taps = 2048;
+#endif
+
+public:
     /// First creation argument is the ambisonics order (default 1, max 5).
     explicit ambitap_binaural(const atoms& args = {}) {
         int order = 1;
@@ -196,20 +217,7 @@ public:
     }
 
 private:
-    std::unique_ptr<ambitap::dsp::binaural_renderer> m_renderer;
-    long                                             m_channels {4};
-    long                                             m_block_size {0};
-    std::vector<std::vector<float>>                  m_in_buffers;  // [channel][block]
-    std::vector<const float*>                        m_in_ptrs;     // into m_in_buffers
-    std::vector<float>                               m_left_buf;
-    std::vector<float>                               m_right_buf;
 #ifdef AMBITAP_HAS_SOFA
-    std::unique_ptr<ambitap::hrtf_data>              m_sofa;    // raw measurements, file rate
-
-    // Cap the decomposed FIR length: bounds convolver cost against
-    // pathologically long measurement files.
-    static constexpr size_t k_max_sofa_taps = 2048;
-
     /// Resolve a filename through the Max search path to an absolute system
     /// path; a name that cannot be located passes through unchanged (it may be
     /// an absolute path already).

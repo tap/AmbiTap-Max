@@ -24,6 +24,15 @@ public:
     inlet<>  m_in {this, "(multichannelsignal) HOA bus"};
     outlet<> m_out {this, "(multichannelsignal) compressed HOA bus", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    std::unique_ptr<ambitap::dsp::spatial_compressor> m_compressor;
+    long                                              m_channel_count {4};
+
+public:
     explicit ambitap_compress(const atoms& args = {}) {
         int order = 1;
         if (!args.empty())
@@ -116,9 +125,6 @@ public:
     }
 
 private:
-    std::unique_ptr<ambitap::dsp::spatial_compressor> m_compressor;
-    long                                              m_channel_count {4};
-
     static long mc_outputs(minwrap<ambitap_compress>* self, long) {
         return self->m_min_object.m_channel_count;
     }

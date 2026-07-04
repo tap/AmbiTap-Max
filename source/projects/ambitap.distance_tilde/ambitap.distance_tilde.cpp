@@ -42,6 +42,25 @@ public:
     inlet<>  m_in {this, "(multichannelsignal) HOA bus"};
     outlet<> m_out {this, "(multichannelsignal) HOA bus with distance cues", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+
+    /// One-pole coefficient of the per-sample distance slew for the gain and
+    /// air-absorption cues (matches dsp::doppler's delay slew).
+    static constexpr float k_distance_slew = 1.0f / 1024.0f;
+
+    std::unique_ptr<ambitap::dsp::doppler> m_doppler;
+    std::unique_ptr<ambitap::dsp::nfc>     m_nfc;
+    long                                   m_channel_count {4};
+    float                                  m_fs {48000.0f};
+    float                                  m_distance_smooth {1.0f};
+    std::vector<float>                     m_frame;
+    std::vector<float>                     m_lp_state;
+
+public:
     explicit ambitap_distance(const atoms& args = {}) {
         int order = 1;
         if (!args.empty())
@@ -221,18 +240,6 @@ public:
     }
 
 private:
-    /// One-pole coefficient of the per-sample distance slew for the gain and
-    /// air-absorption cues (matches dsp::doppler's delay slew).
-    static constexpr float k_distance_slew = 1.0f / 1024.0f;
-
-    std::unique_ptr<ambitap::dsp::doppler> m_doppler;
-    std::unique_ptr<ambitap::dsp::nfc>     m_nfc;
-    long                                   m_channel_count {4};
-    float                                  m_fs {48000.0f};
-    float                                  m_distance_smooth {1.0f};
-    std::vector<float>                     m_frame;
-    std::vector<float>                     m_lp_state;
-
     static long mc_outputs(minwrap<ambitap_distance>* self, long) {
         return self->m_min_object.m_channel_count;
     }
