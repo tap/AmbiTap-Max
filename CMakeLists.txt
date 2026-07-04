@@ -11,6 +11,11 @@ enable_testing()
 # include) for every target added below, including the AmbiTap subdirectory.
 if (WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+    if (MSVC)
+        # Eigen- and min-api-heavy translation units blow past the COFF section
+        # limit (C1128) without /bigobj.
+        add_compile_options(/bigobj)
+    endif ()
 endif ()
 
 string(REGEX REPLACE "(.*)/" "" THIS_PACKAGE_NAME "${CMAKE_CURRENT_SOURCE_DIR}")
