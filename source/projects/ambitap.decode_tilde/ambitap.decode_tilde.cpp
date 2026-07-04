@@ -37,6 +37,18 @@ public:
     inlet<>  m_in {this, "(multichannelsignal) HOA bus"};
     outlet<> m_out {this, "(multichannelsignal) loudspeaker feeds", "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+    std::unique_ptr<ambitap::dsp::decoder> m_decoder;
+    long                                   m_in_channels {4};
+    long                                   m_speaker_count {2};
+    std::vector<float>                     m_in_frame;
+    std::vector<float>                     m_out_frame;
+
+public:
     /// Creation args: <order> <layout-name>.
     explicit ambitap_decode(const atoms& args = {}) {
         int order = 1;
@@ -113,12 +125,6 @@ public:
     }
 
 private:
-    std::unique_ptr<ambitap::dsp::decoder> m_decoder;
-    long                                   m_in_channels {4};
-    long                                   m_speaker_count {2};
-    std::vector<float>                     m_in_frame;
-    std::vector<float>                     m_out_frame;
-
     static std::vector<ambitap::spherical_coord> layout_from_name(const std::string& name) {
         using namespace ambitap::layouts;
         if (name == "stereo") return stereo();

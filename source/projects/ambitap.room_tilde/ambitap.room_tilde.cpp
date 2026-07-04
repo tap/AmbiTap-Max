@@ -42,6 +42,24 @@ public:
     outlet<> m_out {this, "(multichannelsignal) HOA bus, (order+1)^2 channels (ACN/SN3D)",
                     "signal"};
 
+private:
+    // State lives ABOVE the attributes on purpose: min-api attribute
+    // construction invokes the custom setter with the default value, and
+    // members are initialized in declaration order — everything a setter
+    // touches must already be alive.
+
+    /// One-pole coefficient of the per-sample output-gain slew (~5 ms at 48 kHz).
+    static constexpr float k_gain_slew = 1.0f / 256.0f;
+
+    std::unique_ptr<ambitap::dsp::room> m_room;
+    long                                m_channel_count {4};
+    long                                m_block_size {0};
+    float                               m_gain_smooth {1.0f};
+    std::vector<float>                  m_in_buf;
+    std::vector<std::vector<float>>     m_out_bufs; // [channel][block]
+    std::vector<float*>                 m_out_ptrs; // into m_out_bufs
+
+public:
     /// First creation argument is the ambisonics order (default 1, max 3 —
     /// the 16 FDN lines feed at most the 16 channels of order 3).
     explicit ambitap_room(const atoms& args = {}) {
@@ -306,17 +324,6 @@ public:
     }
 
 private:
-    /// One-pole coefficient of the per-sample output-gain slew (~5 ms at 48 kHz).
-    static constexpr float k_gain_slew = 1.0f / 256.0f;
-
-    std::unique_ptr<ambitap::dsp::room> m_room;
-    long                                m_channel_count {4};
-    long                                m_block_size {0};
-    float                               m_gain_smooth {1.0f};
-    std::vector<float>                  m_in_buf;
-    std::vector<std::vector<float>>     m_out_bufs; // [channel][block]
-    std::vector<float*>                 m_out_ptrs; // into m_out_bufs
-
     void push_dimensions(double x, double y, double z) {
         if (m_room)
             m_room->set_room_dimensions(static_cast<float>(x), static_cast<float>(y),
