@@ -86,7 +86,16 @@ endif ()
 # Header-only objects (encode) just use ${AmbiTap_ROOT}/include directly.
 # AmbiTap resolves Eigen via find_package then a pinned FetchContent download;
 # tests are off here because it is not the top-level project.
-set(AMBITAP_ENABLE_SOFA ON CACHE BOOL "SOFA HRTF loading for ambitap.binaural~")
+# SOFA HRTF loading pulls in libmysofa. It doesn't build on Windows/MSVC out of
+# the box (needs zlib, and its export macros trip C2491), so scope SOFA to
+# non-Windows for now; binaural~ still builds everywhere with the built-in KEMAR
+# HRTF — only the `sofa` attribute is absent on Windows. (Windows SOFA is a
+# tracked follow-up, alongside the Pd binaural~ SOFA work.)
+if (WIN32)
+    set(AMBITAP_ENABLE_SOFA OFF CACHE BOOL "SOFA HRTF loading for ambitap.binaural~")
+else ()
+    set(AMBITAP_ENABLE_SOFA ON CACHE BOOL "SOFA HRTF loading for ambitap.binaural~")
+endif ()
 add_subdirectory(${AmbiTap_ROOT} ${CMAKE_CURRENT_BINARY_DIR}/ambitap EXCLUDE_FROM_ALL)
 
 # Min-Lib, if present (header/static helpers shared across objects).
