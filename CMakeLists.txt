@@ -6,6 +6,13 @@ project(AmbiTap-Max)
 
 enable_testing()
 
+# The Max SDK pulls in <windows.h>, whose `min`/`max` macros break min-api's
+# `min::clamp` (and any std::min/std::max). Suppress them (and trim the heavy
+# include) for every target added below, including the AmbiTap subdirectory.
+if (WIN32)
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif ()
+
 string(REGEX REPLACE "(.*)/" "" THIS_PACKAGE_NAME "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if (APPLE)
