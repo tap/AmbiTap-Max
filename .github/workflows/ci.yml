@@ -1,8 +1,9 @@
 name: CI
 
-# Builds the AmbiTap-Max externals (universal x86_64 + arm64) on macOS and
-# checks all 16 bundles came out fat. Both this repo and the AmbiTap submodule
-# are public, so the default GITHUB_TOKEN suffices for the recursive checkout.
+# Builds the AmbiTap-Max externals via the Min-DevKit CMake on macOS (universal
+# x86_64 + arm64 .mxo) and Windows (.mxe64), checking all 16 externals come out.
+# Both this repo and the AmbiTap submodule are public, so the default
+# GITHUB_TOKEN suffices for the recursive checkout.
 
 on:
   push:
@@ -10,7 +11,8 @@ on:
   pull_request:
 
 jobs:
-  build:
+  macos:
+    name: build (macos)
     runs-on: macos-latest
     steps:
       - name: Checkout (recursive — pulls min-api + AmbiTap)
@@ -43,3 +45,27 @@ jobs:
             echo "::error::one or more externals are not universal (x86_64 arm64)"; exit 1
           fi
           echo "all 16 externals are universal"
+
+  windows:
+    name: build (windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout (recursive — pulls min-api + AmbiTap)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Verify 16 externals (.mxe64)
+        shell: pwsh
+        run: |
+          $ext = Get-ChildItem -Recurse externals -Filter *.mxe64
+          Write-Host "built $($ext.Count) externals"
+          $ext | ForEach-Object { Write-Host "  $($_.Name)" }
+          if ($ext.Count -ne 16) { throw "expected 16 .mxe64 externals, got $($ext.Count)" }
+          Write-Host "all 16 externals built"
