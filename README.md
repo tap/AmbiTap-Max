@@ -1,5 +1,7 @@
 # AmbiTap-Max
 
+[![CI](https://github.com/tap/AmbiTap-Max/actions/workflows/ci.yml/badge.svg)](https://github.com/tap/AmbiTap-Max/actions/workflows/ci.yml)
+
 Max/MSP externals for higher-order ambisonics (AmbiX: ACN ordering, SN3D
 normalization), built as thin wrappers over the **AmbiTap** library
 (`ambitap::dsp` / `ambitap::analysis` processors). A Cycling '74 Min-DevKit
