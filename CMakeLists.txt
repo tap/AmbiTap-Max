@@ -4,6 +4,12 @@
 cmake_minimum_required(VERSION 3.19)
 project(AmbiTap-Max)
 
+# Raise the default C++ standard for every target. min-api uses std::clamp
+# (C++17) and the AmbiTap core needs C++20; AppleClang defaults high enough so
+# macOS was fine, but MSVC defaults to C++14, which broke on std::clamp.
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 enable_testing()
 
 # The Max SDK pulls in <windows.h>, whose `min`/`max` macros break min-api's
