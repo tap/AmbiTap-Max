@@ -18,9 +18,11 @@ enable_testing()
 if (WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
     if (MSVC)
-        # Eigen- and min-api-heavy translation units blow past the COFF section
-        # limit (C1128) without /bigobj.
-        add_compile_options(/bigobj)
+        # /bigobj: Eigen- and min-api-heavy TUs blow past the COFF section limit.
+        # /FIalgorithm: min-api's c74_min_limit.h does `using std::clamp;` without
+        #   including <algorithm>; it resolves transitively on AppleClang/libc++
+        #   but not on MSVC's STL, so force-include it first in every TU.
+        add_compile_options(/bigobj /FIalgorithm)
     endif ()
 endif ()
 
