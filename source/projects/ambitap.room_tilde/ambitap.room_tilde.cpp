@@ -221,6 +221,22 @@ public:
         }}
     };
 
+    attribute<symbol> absorption {
+        this, "absorption", "fir",
+        description {"Per-line loop absorption filter: \"fir\" (default) uses the verified "
+                     "255-tap linear-phase FIRs; \"iir\" swaps in one cheap first-order "
+                     "low-pass per line — markedly lower CPU, at the cost of approximate "
+                     "mid-band RT60 and a slightly different late texture (the tail stays "
+                     "level-calibrated either way). Rebuilds off-thread; may glitch briefly."},
+        setter {MIN_FUNCTION {
+            using kind      = ambitap::dsp::room::absorption_kind;
+            const bool  iir = (symbol(args[0]) == symbol("iir"));
+            if (m_room)
+                m_room->set_absorption_kind(iir ? kind::iir : kind::fir);
+            return {iir ? symbol("iir") : symbol("fir")};
+        }}
+    };
+
     /// Per-band reverb time: rt60band <center_hz> <seconds>. Centers are the
     /// parameterized octave bands 250, 500, 1000, 2000, 4000 Hz.
     message<> rt60band {

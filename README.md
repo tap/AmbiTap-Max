@@ -74,7 +74,10 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
   (`dsp::room`, the architecture selected and verified by the library's
   R1–R10 harness). Creation arg `<order>` (max 3). Attributes: `dim_x/y/z`,
   `source_x/y/z`, `listener_x/y/z`, `rt60` (plus `rt60band <hz> <sec>` and
-  `reflections <6 floats>` messages), `direct`/`er`/`tail` toggles, `gain`.
+  `reflections <6 floats>` messages), `direct`/`er`/`tail` toggles, `gain`,
+  and `absorption` (`fir` — the verified linear-phase filters, default — or
+  `iir`, a much cheaper first-order per-line low-pass that trades exact
+  mid-band RT60 for a large CPU saving; the tail stays level-calibrated).
   Fixed ~53 ms latency at 48 kHz (injection alignment inherent to the
   verified design; `latency_samples()` exposed for hosts that compensate).
 
