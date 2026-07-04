@@ -17,6 +17,11 @@ enable_testing()
 # include) for every target added below, including the AmbiTap subdirectory.
 if (WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+    # min-devkit builds the externals with the static CRT (/MT). The AmbiTap
+    # core (and its libmysofa) use CMP0091-NEW, so they'd otherwise default to
+    # the dynamic /MD and clash (LNK4098; binaural~ fails to link). Force the
+    # static runtime on the policy-NEW targets so every object matches /MT.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     if (MSVC)
         # /bigobj: Eigen- and min-api-heavy TUs blow past the COFF section limit.
         add_compile_options(/bigobj)
