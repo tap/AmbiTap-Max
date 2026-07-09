@@ -51,6 +51,12 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
   (`threshold`/`ratio`/`attack`/`release`/`makeup_gain`). MC in/out.
 - **`ambitap.energyvec~`** — active-intensity DOA: MC HOA → x / y / z signals
   (`smoothing_time`).
+- **`ambitap.grid~`** — soundfield energy heatmap analysis
+  (`analysis::soundfield_grid`): MC HOA passthrough + a `grid <rows> <cols>
+  <peak_db> <values...>` list on bang (drive from `qmetro` at display rate),
+  the message the AmbiTap UI layer's v8ui heatmap widget consumes (library
+  repo, `ui/UI.md`). Attributes: `azimuth_steps`, `smoothing_time` (ms),
+  `dynamic_range` (dB).
 - **`ambitap.panbin~`** — direct per-source binaural panner: mono + (`azimuth`/
   `elevation`) → stereo through a per-direction HRTF (order-5 KEMAR SH set),
   no ambisonic bus, no order-limited blur. Direction changes crossfade
