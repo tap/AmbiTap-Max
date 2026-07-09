@@ -14,20 +14,28 @@ foreach (var NPM UI_DIR DEST STAMP)
     endif ()
 endforeach ()
 
-execute_process(
-    COMMAND "${NPM}" ci --no-audit --no-fund
-    WORKING_DIRECTORY "${UI_DIR}"
-    RESULT_VARIABLE rc)
-if (NOT rc EQUAL 0)
-    message(FATAL_ERROR "ambitap_ui: npm ci failed in ${UI_DIR}")
+# npm on Windows is npm.cmd, a batch file execute_process cannot spawn
+# directly — route it through cmd /c there.
+if (CMAKE_HOST_WIN32)
+    set(npm_launcher cmd /c "${NPM}")
+else ()
+    set(npm_launcher "${NPM}")
 endif ()
 
 execute_process(
-    COMMAND "${NPM}" run build
+    COMMAND ${npm_launcher} ci --no-audit --no-fund
     WORKING_DIRECTORY "${UI_DIR}"
     RESULT_VARIABLE rc)
 if (NOT rc EQUAL 0)
-    message(FATAL_ERROR "ambitap_ui: npm run build failed in ${UI_DIR}")
+    message(FATAL_ERROR "ambitap_ui: npm ci failed in ${UI_DIR} (${rc})")
+endif ()
+
+execute_process(
+    COMMAND ${npm_launcher} run build
+    WORKING_DIRECTORY "${UI_DIR}"
+    RESULT_VARIABLE rc)
+if (NOT rc EQUAL 0)
+    message(FATAL_ERROR "ambitap_ui: npm run build failed in ${UI_DIR} (${rc})")
 endif ()
 
 file(GLOB bundles "${UI_DIR}/dist/max/*.js")
