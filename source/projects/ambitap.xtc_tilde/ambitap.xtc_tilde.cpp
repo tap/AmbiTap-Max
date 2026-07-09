@@ -190,10 +190,10 @@ return {value};
 /// <design_gain_db> <makeup_linear>` followed by four `fir <speaker>
 /// <input> <taps...>` lists (0 = left; makeup baked in). Control thread —
 /// reads the same design the convolvers were built from.
-message<> dumpfir{this, "dumpfir", "Dump the designed FIRs for the XTC designer widget.",
-                  MIN_FUNCTION{m_dump.send("firinfo", m_design.sample_rate(),
-                                           static_cast<int>(ambitap::dsp::xtc::latency_samples()),
-                                           m_design.design_gain_db(), m_design.makeup_gain());
+message<> dumpfir{
+    this, "dumpfir", "Dump the designed FIRs for the XTC designer widget.",
+    MIN_FUNCTION{m_dump.send("firinfo", m_design.sample_rate(), static_cast<int>(ambitap::dsp::xtc::latency_samples()),
+                             m_design.design_gain_db(), m_design.makeup_gain());
 for (size_t speaker = 0; speaker < 2; ++speaker) {
     for (size_t input = 0; input < 2; ++input) {
         const auto& taps = m_design.fir(speaker, input);

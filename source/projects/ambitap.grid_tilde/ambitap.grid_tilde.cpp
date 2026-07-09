@@ -90,7 +90,7 @@ attribute<number> dynamic_range{this, "dynamic_range", 40.0,
                                 description{"Display dynamic range in dB below the peak mapped to 0..1."}};
 
 /// Snapshot the smoothed grid (any-thread safe) and send it as one list.
-message<> bang{this, "bang", "Output the current grid snapshot.", MIN_FUNCTION{if (!m_grid) {return {};
+message<> bang{this, "bang", "Output the current grid snapshot.", MIN_FUNCTION{if (!m_grid){return {};
 }
 const auto image = m_grid->snapshot(static_cast<float>(static_cast<double>(dynamic_range)));
 if (image.data.empty()) {
