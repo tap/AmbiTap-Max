@@ -109,11 +109,19 @@ AmbiTap is found at the sibling `../AmbiTap` by default; override with
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 # externals land in externals/ (e.g. ambitap.encode_tilde.mxo → object ambitap.encode~)
+# v8ui widget bundles land in javascript/ (e.g. ambitap.panner.js for [v8ui])
 ```
 
 Requires the Cycling '74 min-api/min-lib under `source/` (currently symlinked
 from an installed Min-DevKit; will be git submodules once this is a repo) and a
 sibling AmbiTap checkout.
+
+The build also requires **node/npm**: the AmbiTap UI layer's v8ui widget
+bundles (panner, heatmap, doa, meters, rotation, layout, roomdesigner,
+xtcdesigner — sources in the library repo's `ui/`, see its `ui/UI.md`) are
+built from `${AmbiTap_ROOT}/ui` with `npm ci` + esbuild at CMake build time
+and staged into `javascript/`, which is generated (gitignored), never
+committed. Skip with `-DAMBITAP_MAX_BUILD_UI=OFF` if node is unavailable.
 
 To use the objects in Max, make Max see this package — symlink (or copy) the
 `AmbiTap-Max` folder into `~/Documents/Max 9/Packages/`:

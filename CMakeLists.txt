@@ -103,6 +103,51 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/source/min-lib/CMakeLists.txt")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/source/min-lib)
 endif ()
 
+# ---- AmbiTap UI widget bundles (v8ui) ---------------------------------------
+# The widget sources live in the AmbiTap library repo (ui/ — one shared model,
+# an mgraphics renderer backend; see its ui/UI.md). This package BUILDS the
+# bundles rather than checking in generated code: npm ci + esbuild in
+# ${AmbiTap_ROOT}/ui, staged into javascript/ (gitignored) where Max resolves
+# [v8ui @jsfile ambitap.<widget>.js]. Requires node/npm on PATH; skip with
+# -DAMBITAP_MAX_BUILD_UI=OFF.
+option(AMBITAP_MAX_BUILD_UI "Build the AmbiTap v8ui widget bundles into javascript/" ON)
+if (AMBITAP_MAX_BUILD_UI)
+    find_program(NPM_EXECUTABLE NAMES npm npm.cmd)
+    if (NOT NPM_EXECUTABLE)
+        message(FATAL_ERROR "npm not found — required for the v8ui widget bundles (javascript/). "
+                            "Install node, or configure with -DAMBITAP_MAX_BUILD_UI=OFF.")
+    endif ()
+    set(AMBITAP_UI_DIR "${AmbiTap_ROOT}/ui")
+    if (NOT EXISTS "${AMBITAP_UI_DIR}/package.json")
+        message(FATAL_ERROR "AmbiTap ui/ not found at ${AMBITAP_UI_DIR} — update the submodule "
+                            "or point -DAmbiTap_ROOT at a checkout that has the UI layer.")
+    endif ()
+
+    # Re-run only when the widget sources change (npm ci is not cheap).
+    file(GLOB_RECURSE AMBITAP_UI_SOURCES CONFIGURE_DEPENDS
+        "${AMBITAP_UI_DIR}/core/*.ts"
+        "${AMBITAP_UI_DIR}/render/*.ts"
+        "${AMBITAP_UI_DIR}/widgets/*.ts"
+        "${AMBITAP_UI_DIR}/hosts/*.ts")
+    set(AMBITAP_UI_STAMP "${CMAKE_CURRENT_BINARY_DIR}/ambitap_ui.stamp")
+    add_custom_command(
+        OUTPUT "${AMBITAP_UI_STAMP}"
+        COMMAND "${NPM_EXECUTABLE}" ci --no-audit --no-fund
+        COMMAND "${NPM_EXECUTABLE}" run build
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/javascript"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${AMBITAP_UI_DIR}/dist/max"
+                "${CMAKE_CURRENT_SOURCE_DIR}/javascript"
+        COMMAND ${CMAKE_COMMAND} -E touch "${AMBITAP_UI_STAMP}"
+        DEPENDS ${AMBITAP_UI_SOURCES}
+                "${AMBITAP_UI_DIR}/package.json"
+                "${AMBITAP_UI_DIR}/package-lock.json"
+                "${AMBITAP_UI_DIR}/scripts/build.mjs"
+        WORKING_DIRECTORY "${AMBITAP_UI_DIR}"
+        COMMENT "AmbiTap v8ui widget bundles: ${AMBITAP_UI_DIR} -> javascript/"
+        VERBATIM)
+    add_custom_target(ambitap_ui ALL DEPENDS "${AMBITAP_UI_STAMP}")
+endif ()
+
 # One external per folder under source/projects/.
 SUBDIRLIST(PROJECT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/source/projects)
 foreach (project_dir ${PROJECT_DIRS})
