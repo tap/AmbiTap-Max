@@ -154,6 +154,16 @@ verification checklist** for the whole UI layer:
 - **`help/ambitap.grid~.maxhelp`** — the new analysis external with the
   heatmap widget on its list outlet.
 
+### Book companion patches
+
+`patchers/booklet/` holds the companion patches for [*Hearing in Three
+Dimensions*](https://github.com/tap/AmbiTap/tree/main/book), the AmbiTap
+book — a field guide to Ambisonics and spatial audio that uses this package
+as its playground. One patch per hands-on chapter, numbered to match
+(`01-first-sounds`, `02-turning-your-head`, `03-out-of-the-headphones`, …);
+each is the patch its chapter builds and describes, so the book can never
+drift from the package.
+
 These patch files are hand-authored JSON and, like everything else in this
 package, **need in-Max verification** — in particular the `v8ui` box
 serialization (re-save from Max once confirmed) and the widget mouse/message
