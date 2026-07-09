@@ -132,6 +132,33 @@ ln -s "$PWD" ~/Documents/Max\ 9/Packages/AmbiTap-Max
 
 Then the externals load and `help/<object>.maxhelp` opens from each object.
 
+## UI widgets & demo patchers
+
+The v8ui widgets (built into `javascript/`, see Build above) come with
+patchers wiring them to the externals — these double as the **in-Max
+verification checklist** for the whole UI layer:
+
+- **`patchers/ambitap.ui-tour.maxpat`** — everything at once: two panners →
+  `encode~` ×2 → `mc.+~` → `rotate~` (rotation ball) → `grid~` → heatmap,
+  `energyvec~` → DOA dot, `mc.peakamp~` → meters, `decode~ 7.1.4` →
+  per-speaker layout levels, `binaural~` monitoring, and the OSC
+  remote-surface route (`udpreceive 7500` ← the browser dashboard via the
+  library repo's `ui/scripts/osc-bridge.mjs`).
+- **`patchers/ambitap.roomdesigner.maxpat`** — room designer ↔
+  `ambitap.room~` (click~ impulses → binaural monitor; rt60/reflections
+  feed both the object and the widget's reflectogram overlay).
+- **`patchers/ambitap.xtcdesigner.maxpat`** — xtc designer ↔ `ambitap.xtc~`
+  (edits drive the object on release; each change re-requests `dumpfir` so
+  the plot shows the running object's designed filters; loudness-matched
+  A/B notes included).
+- **`help/ambitap.grid~.maxhelp`** — the new analysis external with the
+  heatmap widget on its list outlet.
+
+These patch files are hand-authored JSON and, like everything else in this
+package, **need in-Max verification** — in particular the `v8ui` box
+serialization (re-save from Max once confirmed) and the widget mouse/message
+protocols.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` builds all externals universal on macOS and checks
