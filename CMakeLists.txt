@@ -129,20 +129,24 @@ if (AMBITAP_MAX_BUILD_UI)
         "${AMBITAP_UI_DIR}/render/*.ts"
         "${AMBITAP_UI_DIR}/widgets/*.ts"
         "${AMBITAP_UI_DIR}/hosts/*.ts")
+    # One cmake -P script, NOT a COMMAND sequence: on Windows MSBuild renders
+    # multiple COMMANDs as a single batch script, and calling npm.cmd from a
+    # batch script transfers control (batch chaining) — everything after the
+    # first npm call silently never runs.
     set(AMBITAP_UI_STAMP "${CMAKE_CURRENT_BINARY_DIR}/ambitap_ui.stamp")
     add_custom_command(
         OUTPUT "${AMBITAP_UI_STAMP}"
-        COMMAND "${NPM_EXECUTABLE}" ci --no-audit --no-fund
-        COMMAND "${NPM_EXECUTABLE}" run build
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_SOURCE_DIR}/javascript"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${AMBITAP_UI_DIR}/dist/max"
-                "${CMAKE_CURRENT_SOURCE_DIR}/javascript"
-        COMMAND ${CMAKE_COMMAND} -E touch "${AMBITAP_UI_STAMP}"
+        COMMAND ${CMAKE_COMMAND}
+                -DNPM=${NPM_EXECUTABLE}
+                -DUI_DIR=${AMBITAP_UI_DIR}
+                -DDEST=${CMAKE_CURRENT_SOURCE_DIR}/javascript
+                -DSTAMP=${AMBITAP_UI_STAMP}
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ambitap_ui.cmake"
         DEPENDS ${AMBITAP_UI_SOURCES}
                 "${AMBITAP_UI_DIR}/package.json"
                 "${AMBITAP_UI_DIR}/package-lock.json"
                 "${AMBITAP_UI_DIR}/scripts/build.mjs"
-        WORKING_DIRECTORY "${AMBITAP_UI_DIR}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ambitap_ui.cmake"
         COMMENT "AmbiTap v8ui widget bundles: ${AMBITAP_UI_DIR} -> javascript/"
         VERBATIM)
     add_custom_target(ambitap_ui ALL DEPENDS "${AMBITAP_UI_STAMP}")
