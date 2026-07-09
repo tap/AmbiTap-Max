@@ -117,6 +117,7 @@ class ambitap_xtc : public object<ambitap_xtc>, public vector_operator<> {
     inlet<>  m_in_right{this, "(signal) right program (binaural or stereo)"};
     outlet<> m_out_left{this, "(signal) left speaker feed", "signal"};
     outlet<> m_out_right{this, "(signal) right speaker feed", "signal"};
+    outlet<> m_dump{this, "(lists) dumpfir: firinfo + four fir lists for the XTC designer widget"};
 
     ~ambitap_xtc() {
         // DSP is torn down before the object is freed; every live quad is in
@@ -180,6 +181,34 @@ attribute<bool> bypass{this, "bypass", false,
 m_bypass_target.store(value ? 1.0f : 0.0f, std::memory_order_relaxed);
 return {value};
 }
+}
+}
+;
+
+/// Dump the current design for the AmbiTap UI layer's XTC designer v8ui
+/// (library repo, ui/UI.md): `firinfo <sample_rate> <latency_samples>
+/// <design_gain_db> <makeup_linear>` followed by four `fir <speaker>
+/// <input> <taps...>` lists (0 = left; makeup baked in). Control thread —
+/// reads the same design the convolvers were built from.
+message<> dumpfir{this, "dumpfir", "Dump the designed FIRs for the XTC designer widget.",
+                  MIN_FUNCTION{m_dump.send("firinfo", m_design.sample_rate(),
+                                           static_cast<int>(ambitap::dsp::xtc::latency_samples()),
+                                           m_design.design_gain_db(), m_design.makeup_gain());
+for (size_t speaker = 0; speaker < 2; ++speaker) {
+    for (size_t input = 0; input < 2; ++input) {
+        const auto& taps = m_design.fir(speaker, input);
+        atoms       out;
+        out.reserve(3 + taps.size());
+        out.push_back("fir");
+        out.push_back(static_cast<int>(speaker));
+        out.push_back(static_cast<int>(input));
+        for (const float v : taps) {
+            out.push_back(v);
+        }
+        m_dump.send(out);
+    }
+}
+return {};
 }
 }
 ;
