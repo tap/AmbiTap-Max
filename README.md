@@ -86,6 +86,16 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
   mid-band RT60 for a large CPU saving; the tail stays level-calibrated).
   Fixed ~53 ms latency at 48 kHz (injection alignment inherent to the
   verified design; `latency_samples()` exposed for hosts that compensate).
+- **`ambitap.plate~`** — multichannel plate reverb (`dsp::plate`): Dattorro's
+  1997 plate-class tank "in the Griesinger style", generalized from the
+  stereo figure-8 to a K-branch ring with N inputs and M outputs (each up
+  to 64, one MC signal in/out). Creation args `<inputs> <outputs>
+  <branches>` (defaults 2 2 4; branches 2 = the classic stereo topology).
+  Attributes: `decay` (1 = freeze), `damping`, `bandwidth`, `diffusion`
+  (master scale over the paper's four allpass coefficients), `predelay`
+  (ms), `moddepth`/`modrate` (tank chorusing), `mix` (equal-power dry/wet,
+  dry mapped channel-wise); `clear` message. 100% wait-free audio path, no
+  worker thread; every output is a decorrelated 7-tap view of the tank.
 
 ## Layout
 

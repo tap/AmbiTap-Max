@@ -1,7 +1,7 @@
 name: CI
 
 # Builds the AmbiTap-Max externals via the Min-DevKit CMake on macOS (universal
-# x86_64 + arm64 .mxo) and Windows (.mxe64), checking all 17 externals and the 8 v8ui widget bundles come out.
+# x86_64 + arm64 .mxo) and Windows (.mxe64), checking all 18 externals and the 8 v8ui widget bundles come out.
 # Both this repo and the AmbiTap submodule are public, so the default
 # GITHUB_TOKEN suffices for the recursive checkout.
 
@@ -26,13 +26,13 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Verify 17 universal externals
+      - name: Verify 18 universal externals
         run: |
           set -euo pipefail
           count=$(ls -d externals/*.mxo | wc -l | tr -d ' ')
           echo "built $count externals"
-          if [ "$count" -ne 17 ]; then
-            echo "::error::expected 17 externals, got $count"; exit 1
+          if [ "$count" -ne 18 ]; then
+            echo "::error::expected 18 externals, got $count"; exit 1
           fi
           fail=0
           for mxo in externals/*.mxo; do
@@ -44,7 +44,7 @@ jobs:
           if [ "$fail" -ne 0 ]; then
             echo "::error::one or more externals are not universal (x86_64 arm64)"; exit 1
           fi
-          echo "all 17 externals are universal"
+          echo "all 18 externals are universal"
 
       - name: Verify 8 v8ui widget bundles
         run: |
@@ -71,14 +71,14 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      - name: Verify 17 externals (.mxe64)
+      - name: Verify 18 externals (.mxe64)
         shell: pwsh
         run: |
           $ext = Get-ChildItem -Recurse externals -Filter *.mxe64
           Write-Host "built $($ext.Count) externals"
           $ext | ForEach-Object { Write-Host "  $($_.Name)" }
-          if ($ext.Count -ne 17) { throw "expected 17 .mxe64 externals, got $($ext.Count)" }
-          Write-Host "all 17 externals built"
+          if ($ext.Count -ne 18) { throw "expected 18 .mxe64 externals, got $($ext.Count)" }
+          Write-Host "all 18 externals built"
 
       - name: Verify 8 v8ui widget bundles
         shell: pwsh
