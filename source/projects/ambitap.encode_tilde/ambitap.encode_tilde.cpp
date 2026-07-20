@@ -51,73 +51,66 @@ class ambitap_encode : public object<ambitap_encode>, public vector_operator<> {
 
     attribute<number> azimuth{this, "azimuth", 0.0,
                               description{"Source azimuth in radians. 0 = front, pi/2 = left, pi = behind."},
-                              setter{MIN_FUNCTION{const double value = args[0];
-    if (m_encoder) {
-        m_encoder->set_azimuth(static_cast<float>(value));
-    }
-    return {value};
-}
-}
-}
-;
+                              setter{MIN_FUNCTION{
+                                  const double value = args[0];
+                                  if (m_encoder) {
+                                      m_encoder->set_azimuth(static_cast<float>(value));
+                                  }
+                                  return {value};
+                              }}};
 
-attribute<number> elevation{this, "elevation", 0.0,
-                            description{"Source elevation in radians. 0 = horizon, pi/2 = zenith."},
-                            setter{MIN_FUNCTION{const double value = args[0];
-if (m_encoder) {
-    m_encoder->set_elevation(static_cast<float>(value));
-}
-return {value};
-}
-}
-}
-;
+    attribute<number> elevation{this, "elevation", 0.0,
+                                description{"Source elevation in radians. 0 = horizon, pi/2 = zenith."},
+                                setter{MIN_FUNCTION{
+                                    const double value = args[0];
+                                    if (m_encoder) {
+                                        m_encoder->set_elevation(static_cast<float>(value));
+                                    }
+                                    return {value};
+                                }}};
 
-attribute<number> gain{this, "gain", 1.0, description{"Linear output gain."},
-                       setter{MIN_FUNCTION{const double value = args[0];
-if (m_encoder) {
-    m_encoder->set_gain(static_cast<float>(value));
-}
-return {value};
-}
-}
-}
-;
+    attribute<number> gain{this, "gain", 1.0, description{"Linear output gain."},
+                           setter{MIN_FUNCTION{
+                               const double value = args[0];
+                               if (m_encoder) {
+                                   m_encoder->set_gain(static_cast<float>(value));
+                               }
+                               return {value};
+                           }}};
 
-/// Registered at class-setup so the single signal outlet reports
-/// (order+1)^2 channels — i.e. behaves as a multichannel output. min-api
-/// does not wrap Max's `multichanneloutputs`, so we add it via raw max-api.
-message<> maxclass_setup{this, "maxclass_setup", MIN_FUNCTION{c74::max::t_class* c = args[0];
-c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs), "multichanneloutputs", c74::max::A_CANT,
-                          0);
-return {};
-}
-}
-;
+    /// Registered at class-setup so the single signal outlet reports
+    /// (order+1)^2 channels — i.e. behaves as a multichannel output. min-api
+    /// does not wrap Max's `multichanneloutputs`, so we add it via raw max-api.
+    message<> maxclass_setup{this, "maxclass_setup",
+                             MIN_FUNCTION{
+                                 c74::max::t_class* c = args[0];
+                                 c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs),
+                                                           "multichanneloutputs", c74::max::A_CANT, 0);
+                                 return {};
+                             }};
 
-/// out[ch] = in * encoder_coefficient[ch] (gain folded in). Channel count is
-/// whatever Max allocated from multichanneloutputs (== (order+1)^2).
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto    frames = input.frame_count();
-    const auto    nch    = output.channel_count();
-    const double* in     = input.samples(0);
+    /// out[ch] = in * encoder_coefficient[ch] (gain folded in). Channel count is
+    /// whatever Max allocated from multichanneloutputs (== (order+1)^2).
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto    frames = input.frame_count();
+        const auto    nch    = output.channel_count();
+        const double* in     = input.samples(0);
 
-    for (auto ch = 0; ch < nch; ++ch) {
-        double*      out = output.samples(ch);
-        const double g   = (ch < m_channel_count) ? m_encoder->channel_gain(ch) : 0.0;
-        for (auto i = 0; i < frames; ++i) {
-            out[i] = in[i] * g;
+        for (auto ch = 0; ch < nch; ++ch) {
+            double*      out = output.samples(ch);
+            const double g   = (ch < m_channel_count) ? m_encoder->channel_gain(ch) : 0.0;
+            for (auto i = 0; i < frames; ++i) {
+                out[i] = in[i] * g;
+            }
         }
     }
-}
 
-private:
-/// Max calls this (per outlet) to learn the channel count. Signature is
-/// long(t_object*, long); the t_object is the min wrapper instance.
-static long mc_outputs(minwrap<ambitap_encode>* self, long /* outlet_index */) {
-    return self->m_min_object.m_channel_count;
-}
-}
-;
+  private:
+    /// Max calls this (per outlet) to learn the channel count. Signature is
+    /// long(t_object*, long); the t_object is the min wrapper instance.
+    static long mc_outputs(minwrap<ambitap_encode>* self, long /* outlet_index */) {
+        return self->m_min_object.m_channel_count;
+    }
+};
 
 MIN_EXTERNAL(ambitap_encode);

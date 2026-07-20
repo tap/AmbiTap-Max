@@ -127,226 +127,216 @@ class ambitap_xtc : public object<ambitap_xtc>, public vector_operator<> {
         delete m_active;
     }
 
-    attribute<number>           span{this, "span", 20.0,
+    attribute<number> span{this, "span", 20.0,
                            description{"Full angle between the loudspeakers in degrees (speakers at ±span/2), "
-                                                 "clamped to [5, 120]. Default 20 — the ±10° desktop geometry the "
-                                                 "verification gates run at."},
-                           setter{MIN_FUNCTION{const double value = args[0];
-    std::lock_guard<std::mutex> lock(m_control_mutex);
-    m_design.set_span(static_cast<float>(value));
-    publish();
-    return {static_cast<double>(m_design.span())};
-}
-}
-}
-;
+                                       "clamped to [5, 120]. Default 20 — the ±10° desktop geometry the "
+                                       "verification gates run at."},
+                           setter{MIN_FUNCTION{
+                               const double                value = args[0];
+                               std::lock_guard<std::mutex> lock(m_control_mutex);
+                               m_design.set_span(static_cast<float>(value));
+                               publish();
+                               return {static_cast<double>(m_design.span())};
+                           }}};
 
-attribute<number>           distance{this, "distance", 1.0,
-                           description{"Listener-to-speaker distance in meters (>= 0.1). Part of the stated "
-                                                 "geometry; the v1 symmetric far-field design is invariant to it (equal "
-                                                 "path delays and 1/r gains cancel), but state it truthfully — the "
-                                                 "robustness verification displaces the head against it."},
-                           setter{MIN_FUNCTION{const double value = args[0];
-std::lock_guard<std::mutex> lock(m_control_mutex);
-m_design.set_distance(static_cast<float>(value));
-publish();
-return {static_cast<double>(m_design.distance())};
-}
-}
-}
-;
+    attribute<number> distance{this, "distance", 1.0,
+                               description{"Listener-to-speaker distance in meters (>= 0.1). Part of the stated "
+                                           "geometry; the v1 symmetric far-field design is invariant to it (equal "
+                                           "path delays and 1/r gains cancel), but state it truthfully — the "
+                                           "robustness verification displaces the head against it."},
+                               setter{MIN_FUNCTION{
+                                   const double                value = args[0];
+                                   std::lock_guard<std::mutex> lock(m_control_mutex);
+                                   m_design.set_distance(static_cast<float>(value));
+                                   publish();
+                                   return {static_cast<double>(m_design.distance())};
+                               }}};
 
-attribute<number>           regularization{this, "regularization", 0.5,
-                                 description{"In-band regularization amount, 0..1 (default 0.5 — the verified "
-                                                       "setting). Scales the cancellation-band beta across ±1 decade: lower "
-                                                       "buys deeper rejection with a hotter, more position-sensitive filter; "
-                                                       "higher trades rejection for robustness and headroom."},
-                                 setter{MIN_FUNCTION{const double value = args[0];
-std::lock_guard<std::mutex> lock(m_control_mutex);
-m_design.set_regularization(static_cast<float>(value));
-publish();
-return {static_cast<double>(m_design.regularization())};
-}
-}
-}
-;
+    attribute<number> regularization{this, "regularization", 0.5,
+                                     description{"In-band regularization amount, 0..1 (default 0.5 — the verified "
+                                                 "setting). Scales the cancellation-band beta across ±1 decade: lower "
+                                                 "buys deeper rejection with a hotter, more position-sensitive filter; "
+                                                 "higher trades rejection for robustness and headroom."},
+                                     setter{MIN_FUNCTION{
+                                         const double                value = args[0];
+                                         std::lock_guard<std::mutex> lock(m_control_mutex);
+                                         m_design.set_regularization(static_cast<float>(value));
+                                         publish();
+                                         return {static_cast<double>(m_design.regularization())};
+                                     }}};
 
-attribute<bool> bypass{this, "bypass", false,
-                       description{"Pass the input straight through (the A/B reference required by the "
-                                   "listening protocol). Toggling ramps over one signal vector, so it "
-                                   "does not click. Note the cancelled path carries the +12 dB-ceiling "
-                                   "makeup attenuation and 512 samples of filter latency; loudness-match "
-                                   "upstream for fair comparison."},
-                       setter{MIN_FUNCTION{const bool value = args[0];
-m_bypass_target.store(value ? 1.0f : 0.0f, std::memory_order_relaxed);
-return {value};
-}
-}
-}
-;
+    attribute<bool> bypass{this, "bypass", false,
+                           description{"Pass the input straight through (the A/B reference required by the "
+                                       "listening protocol). Toggling ramps over one signal vector, so it "
+                                       "does not click. Note the cancelled path carries the +12 dB-ceiling "
+                                       "makeup attenuation and 512 samples of filter latency; loudness-match "
+                                       "upstream for fair comparison."},
+                           setter{MIN_FUNCTION{
+                               const bool value = args[0];
+                               m_bypass_target.store(value ? 1.0f : 0.0f, std::memory_order_relaxed);
+                               return {value};
+                           }}};
 
-/// Dump the current design for the AmbiTap UI layer's XTC designer v8ui
-/// (library repo, ui/UI.md): `firinfo <sample_rate> <latency_samples>
-/// <design_gain_db> <makeup_linear>` followed by four `fir <speaker>
-/// <input> <taps...>` lists (0 = left; makeup baked in). Control thread —
-/// reads the same design the convolvers were built from.
-message<> dumpfir{
-    this, "dumpfir", "Dump the designed FIRs for the XTC designer widget.",
-    MIN_FUNCTION{m_dump.send("firinfo", m_design.sample_rate(), static_cast<int>(ambitap::dsp::xtc::latency_samples()),
-                             m_design.design_gain_db(), m_design.makeup_gain());
-for (size_t speaker = 0; speaker < 2; ++speaker) {
-    for (size_t input = 0; input < 2; ++input) {
-        const auto& taps = m_design.fir(speaker, input);
-        atoms       out;
-        out.reserve(3 + taps.size());
-        out.push_back("fir");
-        out.push_back(static_cast<int>(speaker));
-        out.push_back(static_cast<int>(input));
-        for (const float v : taps) {
-            out.push_back(v);
-        }
-        m_dump.send(out);
-    }
-}
-return {};
-}
-}
-;
+    /// Dump the current design for the AmbiTap UI layer's XTC designer v8ui
+    /// (library repo, ui/UI.md): `firinfo <sample_rate> <latency_samples>
+    /// <design_gain_db> <makeup_linear>` followed by four `fir <speaker>
+    /// <input> <taps...>` lists (0 = left; makeup baked in). Control thread —
+    /// reads the same design the convolvers were built from.
+    message<> dumpfir{
+        this, "dumpfir", "Dump the designed FIRs for the XTC designer widget.",
+        MIN_FUNCTION{
+            m_dump.send("firinfo", m_design.sample_rate(), static_cast<int>(ambitap::dsp::xtc::latency_samples()),
+                        m_design.design_gain_db(), m_design.makeup_gain());
+            for (size_t speaker = 0; speaker < 2; ++speaker) {
+                for (size_t input = 0; input < 2; ++input) {
+                    const auto& taps = m_design.fir(speaker, input);
+                    atoms       out;
+                    out.reserve(3 + taps.size());
+                    out.push_back("fir");
+                    out.push_back(static_cast<int>(speaker));
+                    out.push_back(static_cast<int>(input));
+                    for (const float v : taps) {
+                        out.push_back(v);
+                    }
+                    m_dump.send(out);
+                }
+            }
+            return {};
+        }};
 
-/// Build the convolvers for the host's signal vector size and sample rate.
-/// Called by Max whenever the dsp chain is (re)compiled — audio is not
-/// running, so we can rebuild everything synchronously.
-message<>  dspsetup{this, "dspsetup", MIN_FUNCTION{const double sample_rate = args[0];
-const long vector_size = args[1];
-prepare(vector_size, sample_rate);
-return {};
-}
-}
-;
+    /// Build the convolvers for the host's signal vector size and sample rate.
+    /// Called by Max whenever the dsp chain is (re)compiled — audio is not
+    /// running, so we can rebuild everything synchronously.
+    message<> dspsetup{this, "dspsetup",
+                       MIN_FUNCTION{
+                           const double sample_rate = args[0];
+                           const long   vector_size = args[1];
+                           prepare(vector_size, sample_rate);
+                           return {};
+                       }};
 
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto frames = input.frame_count();
-    double*    out_l  = output.samples(0);
-    double*    out_r  = output.samples(1);
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto frames = input.frame_count();
+        double*    out_l  = output.samples(0);
+        double*    out_r  = output.samples(1);
 
-    // Convolvers need a power-of-two vector size, set up in dspsetup. If
-    // the current block doesn't match what we prepared, emit silence.
-    if (m_block_size == 0 || frames != m_block_size) {
-        for (auto i = 0; i < frames; ++i) {
-            out_l[i] = 0.0;
-            out_r[i] = 0.0;
-        }
-        return;
-    }
-
-    // Copy the inputs up front: outputs may alias inputs, and the dry
-    // (bypass) mix needs them after the wet render.
-    const double* in_l = input.samples(0);
-    const double* in_r = input.samples(1);
-    for (auto i = 0; i < frames; ++i) {
-        m_in_l[i] = static_cast<float>(in_l[i]);
-        m_in_r[i] = static_cast<float>(in_r[i]);
-    }
-
-    // Adopt a newly published design, but only when the trash slot is
-    // free to receive the quad we would retire (the control thread reaps
-    // it; the audio thread never frees). A full slot just defers the
-    // switch to a later block.
-    convolver_quad* incoming = nullptr;
-    if (m_trash.load(std::memory_order_relaxed) == nullptr) {
-        incoming = m_pending.exchange(nullptr, std::memory_order_acq_rel);
-    }
-
-    if (incoming && m_active) {
-        // Crossfade: render the block through both the old and the new
-        // quad, ramp between them, then park the old quad for reaping.
-        m_active->process(m_in_l.data(), m_in_r.data(), m_fade_l.data(), m_fade_r.data(), m_tmp.data(), frames);
-        incoming->process(m_in_l.data(), m_in_r.data(), m_wet_l.data(), m_wet_r.data(), m_tmp.data(), frames);
-        const float step = 1.0f / static_cast<float>(frames);
-        float       w    = 0.0f;
-        for (auto i = 0; i < frames; ++i) {
-            w += step;
-            m_wet_l[i] = m_fade_l[i] + w * (m_wet_l[i] - m_fade_l[i]);
-            m_wet_r[i] = m_fade_r[i] + w * (m_wet_r[i] - m_fade_r[i]);
-        }
-        m_trash.store(m_active, std::memory_order_release);
-        m_active = incoming;
-    }
-    else {
-        if (incoming) {
-            m_active = incoming; // first-ever quad: nothing to fade from
-        }
-        if (!m_active) {
+        // Convolvers need a power-of-two vector size, set up in dspsetup. If
+        // the current block doesn't match what we prepared, emit silence.
+        if (m_block_size == 0 || frames != m_block_size) {
             for (auto i = 0; i < frames; ++i) {
                 out_l[i] = 0.0;
                 out_r[i] = 0.0;
             }
             return;
         }
-        m_active->process(m_in_l.data(), m_in_r.data(), m_wet_l.data(), m_wet_r.data(), m_tmp.data(), frames);
+
+        // Copy the inputs up front: outputs may alias inputs, and the dry
+        // (bypass) mix needs them after the wet render.
+        const double* in_l = input.samples(0);
+        const double* in_r = input.samples(1);
+        for (auto i = 0; i < frames; ++i) {
+            m_in_l[i] = static_cast<float>(in_l[i]);
+            m_in_r[i] = static_cast<float>(in_r[i]);
+        }
+
+        // Adopt a newly published design, but only when the trash slot is
+        // free to receive the quad we would retire (the control thread reaps
+        // it; the audio thread never frees). A full slot just defers the
+        // switch to a later block.
+        convolver_quad* incoming = nullptr;
+        if (m_trash.load(std::memory_order_relaxed) == nullptr) {
+            incoming = m_pending.exchange(nullptr, std::memory_order_acq_rel);
+        }
+
+        if (incoming && m_active) {
+            // Crossfade: render the block through both the old and the new
+            // quad, ramp between them, then park the old quad for reaping.
+            m_active->process(m_in_l.data(), m_in_r.data(), m_fade_l.data(), m_fade_r.data(), m_tmp.data(), frames);
+            incoming->process(m_in_l.data(), m_in_r.data(), m_wet_l.data(), m_wet_r.data(), m_tmp.data(), frames);
+            const float step = 1.0f / static_cast<float>(frames);
+            float       w    = 0.0f;
+            for (auto i = 0; i < frames; ++i) {
+                w += step;
+                m_wet_l[i] = m_fade_l[i] + w * (m_wet_l[i] - m_fade_l[i]);
+                m_wet_r[i] = m_fade_r[i] + w * (m_wet_r[i] - m_fade_r[i]);
+            }
+            m_trash.store(m_active, std::memory_order_release);
+            m_active = incoming;
+        }
+        else {
+            if (incoming) {
+                m_active = incoming; // first-ever quad: nothing to fade from
+            }
+            if (!m_active) {
+                for (auto i = 0; i < frames; ++i) {
+                    out_l[i] = 0.0;
+                    out_r[i] = 0.0;
+                }
+                return;
+            }
+            m_active->process(m_in_l.data(), m_in_r.data(), m_wet_l.data(), m_wet_r.data(), m_tmp.data(), frames);
+        }
+
+        // Bypass: linear ramp from the previous mix to the target across this
+        // block (click-free, race-free). The convolvers rendered above either
+        // way, so their history stays warm and un-bypassing is seamless.
+        const float target = m_bypass_target.load(std::memory_order_relaxed);
+        float       b      = m_bypass_current;
+        const float b_step = (target - b) / static_cast<float>(frames);
+        for (auto i = 0; i < frames; ++i) {
+            b += b_step;
+            out_l[i] = static_cast<double>(m_wet_l[i] + b * (m_in_l[i] - m_wet_l[i]));
+            out_r[i] = static_cast<double>(m_wet_r[i] + b * (m_in_r[i] - m_wet_r[i]));
+        }
+        m_bypass_current = target;
     }
 
-    // Bypass: linear ramp from the previous mix to the target across this
-    // block (click-free, race-free). The convolvers rendered above either
-    // way, so their history stays warm and un-bypassing is seamless.
-    const float target = m_bypass_target.load(std::memory_order_relaxed);
-    float       b      = m_bypass_current;
-    const float b_step = (target - b) / static_cast<float>(frames);
-    for (auto i = 0; i < frames; ++i) {
-        b += b_step;
-        out_l[i] = static_cast<double>(m_wet_l[i] + b * (m_in_l[i] - m_wet_l[i]));
-        out_r[i] = static_cast<double>(m_wet_r[i] + b * (m_in_r[i] - m_wet_r[i]));
-    }
-    m_bypass_current = target;
-}
-
-private:
-/// Publish a freshly built convolver quad for the audio thread to
-/// crossfade to. Caller holds m_control_mutex; no-op until prepared
-/// (dspsetup builds the first quad).
-void publish() {
-    if (m_block_size == 0) {
-        return;
-    }
-    delete m_trash.exchange(nullptr, std::memory_order_acq_rel); // reap
-    // A still-unadopted previous pending quad comes back to us here and is
-    // deleted — the audio thread only ever sees the newest design.
-    auto quad = std::make_unique<convolver_quad>(static_cast<size_t>(m_block_size), m_design);
-    delete m_pending.exchange(quad.release(), std::memory_order_acq_rel);
-}
-
-void prepare(long vector_size, double sample_rate) {
-    std::lock_guard<std::mutex> lock(m_control_mutex);
-
-    // Audio is stopped during dspsetup: reclaim every quad synchronously.
-    delete m_pending.exchange(nullptr);
-    delete m_trash.exchange(nullptr);
-    delete m_active;
-    m_active = nullptr;
-
-    const bool valid = (vector_size >= 4) && ((vector_size & (vector_size - 1)) == 0);
-    if (!valid) {
-        m_block_size = 0; // unsupported vector size -> stay silent
-        return;
-    }
-    m_block_size = vector_size;
-    if (sample_rate != m_sample_rate) {
-        m_sample_rate = sample_rate;
-        m_design.set_sample_rate(static_cast<float>(sample_rate)); // redesigns the FIRs
+  private:
+    /// Publish a freshly built convolver quad for the audio thread to
+    /// crossfade to. Caller holds m_control_mutex; no-op until prepared
+    /// (dspsetup builds the first quad).
+    void publish() {
+        if (m_block_size == 0) {
+            return;
+        }
+        delete m_trash.exchange(nullptr, std::memory_order_acq_rel); // reap
+        // A still-unadopted previous pending quad comes back to us here and is
+        // deleted — the audio thread only ever sees the newest design.
+        auto quad = std::make_unique<convolver_quad>(static_cast<size_t>(m_block_size), m_design);
+        delete m_pending.exchange(quad.release(), std::memory_order_acq_rel);
     }
 
-    const auto v = static_cast<size_t>(vector_size);
-    m_in_l.assign(v, 0.0f);
-    m_in_r.assign(v, 0.0f);
-    m_wet_l.assign(v, 0.0f);
-    m_wet_r.assign(v, 0.0f);
-    m_fade_l.assign(v, 0.0f);
-    m_fade_r.assign(v, 0.0f);
-    m_tmp.assign(v, 0.0f);
+    void prepare(long vector_size, double sample_rate) {
+        std::lock_guard<std::mutex> lock(m_control_mutex);
 
-    m_active = new convolver_quad(v, m_design);
-}
-}
-;
+        // Audio is stopped during dspsetup: reclaim every quad synchronously.
+        delete m_pending.exchange(nullptr);
+        delete m_trash.exchange(nullptr);
+        delete m_active;
+        m_active = nullptr;
+
+        const bool valid = (vector_size >= 4) && ((vector_size & (vector_size - 1)) == 0);
+        if (!valid) {
+            m_block_size = 0; // unsupported vector size -> stay silent
+            return;
+        }
+        m_block_size = vector_size;
+        if (sample_rate != m_sample_rate) {
+            m_sample_rate = sample_rate;
+            m_design.set_sample_rate(static_cast<float>(sample_rate)); // redesigns the FIRs
+        }
+
+        const auto v = static_cast<size_t>(vector_size);
+        m_in_l.assign(v, 0.0f);
+        m_in_r.assign(v, 0.0f);
+        m_wet_l.assign(v, 0.0f);
+        m_wet_r.assign(v, 0.0f);
+        m_fade_l.assign(v, 0.0f);
+        m_fade_r.assign(v, 0.0f);
+        m_tmp.assign(v, 0.0f);
+
+        m_active = new convolver_quad(v, m_design);
+    }
+};
 
 MIN_EXTERNAL(ambitap_xtc);

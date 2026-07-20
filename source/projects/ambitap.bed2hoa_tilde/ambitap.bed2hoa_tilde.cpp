@@ -77,79 +77,78 @@ class ambitap_bed2hoa : public object<ambitap_bed2hoa>, public mc_operator<> {
     /// Registered at class-setup so the single signal outlet reports
     /// (order+1)^2 channels — the same multichanneloutputs pattern as
     /// ambitap.encode~.
-    message<> maxclass_setup{this, "maxclass_setup", MIN_FUNCTION{c74::max::t_class* c = args[0];
-    c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs), "multichanneloutputs",
-                              c74::max::A_CANT, 0);
-    return {};
-}
-}
-;
+    message<> maxclass_setup{this, "maxclass_setup",
+                             MIN_FUNCTION{
+                                 c74::max::t_class* c = args[0];
+                                 c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs),
+                                                           "multichanneloutputs", c74::max::A_CANT, 0);
+                                 return {};
+                             }};
 
-/// out[ch] = gain * sum over speakers of in[s] * G[s][ch]. Input channels
-/// beyond the layout's speaker count are ignored; missing ones are silent.
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto   frames = input.frame_count();
-    const auto   in_ch  = std::min(input.channel_count(), m_speaker_count);
-    const auto   out_ch = output.channel_count();
-    const double g      = gain;
+    /// out[ch] = gain * sum over speakers of in[s] * G[s][ch]. Input channels
+    /// beyond the layout's speaker count are ignored; missing ones are silent.
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto   frames = input.frame_count();
+        const auto   in_ch  = std::min(input.channel_count(), m_speaker_count);
+        const auto   out_ch = output.channel_count();
+        const double g      = gain;
 
-    for (auto ch = 0; ch < out_ch; ++ch) {
-        double* out = output.samples(ch);
-        for (auto i = 0; i < frames; ++i) {
-            out[i] = 0.0;
-        }
-        if (ch >= m_channel_count) {
-            continue;
-        }
-        for (auto s = 0; s < in_ch; ++s) {
-            const double  gs = m_gains[static_cast<size_t>(s)][static_cast<size_t>(ch)] * g;
-            const double* in = input.samples(s);
+        for (auto ch = 0; ch < out_ch; ++ch) {
+            double* out = output.samples(ch);
             for (auto i = 0; i < frames; ++i) {
-                out[i] += in[i] * gs;
+                out[i] = 0.0;
+            }
+            if (ch >= m_channel_count) {
+                continue;
+            }
+            for (auto s = 0; s < in_ch; ++s) {
+                const double  gs = m_gains[static_cast<size_t>(s)][static_cast<size_t>(ch)] * g;
+                const double* in = input.samples(s);
+                for (auto i = 0; i < frames; ++i) {
+                    out[i] += in[i] * gs;
+                }
             }
         }
     }
-}
 
-private:
-long                             m_channel_count{4};
-long                             m_speaker_count{5};
-std::vector<std::vector<double>> m_gains; // [speaker][hoa channel]
+  private:
+    long                             m_channel_count{4};
+    long                             m_speaker_count{5};
+    std::vector<std::vector<double>> m_gains; // [speaker][hoa channel]
 
-static std::vector<ambitap::spherical_coord> layout_from_name(const std::string& name) {
-    using namespace ambitap::layouts;
-    if (name == "stereo") {
-        return stereo();
+    static std::vector<ambitap::spherical_coord> layout_from_name(const std::string& name) {
+        using namespace ambitap::layouts;
+        if (name == "stereo") {
+            return stereo();
+        }
+        if (name == "quad") {
+            return quad();
+        }
+        if (name == "surround_5_1" || name == "5.1") {
+            return surround_5_1();
+        }
+        if (name == "surround_7_1" || name == "7.1") {
+            return surround_7_1();
+        }
+        if (name == "surround_7_1_4" || name == "7.1.4") {
+            return surround_7_1_4();
+        }
+        if (name == "cube") {
+            return cube();
+        }
+        if (name == "hexagon") {
+            return hexagon();
+        }
+        if (name == "octagon") {
+            return octagon();
+        }
+        return {};
     }
-    if (name == "quad") {
-        return quad();
-    }
-    if (name == "surround_5_1" || name == "5.1") {
-        return surround_5_1();
-    }
-    if (name == "surround_7_1" || name == "7.1") {
-        return surround_7_1();
-    }
-    if (name == "surround_7_1_4" || name == "7.1.4") {
-        return surround_7_1_4();
-    }
-    if (name == "cube") {
-        return cube();
-    }
-    if (name == "hexagon") {
-        return hexagon();
-    }
-    if (name == "octagon") {
-        return octagon();
-    }
-    return {};
-}
 
-/// Max calls this (per outlet) to learn the channel count.
-static long mc_outputs(minwrap<ambitap_bed2hoa>* self, long /* outlet_index */) {
-    return self->m_min_object.m_channel_count;
-}
-}
-;
+    /// Max calls this (per outlet) to learn the channel count.
+    static long mc_outputs(minwrap<ambitap_bed2hoa>* self, long /* outlet_index */) {
+        return self->m_min_object.m_channel_count;
+    }
+};
 
 MIN_EXTERNAL(ambitap_bed2hoa);

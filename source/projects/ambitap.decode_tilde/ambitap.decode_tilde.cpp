@@ -80,96 +80,93 @@ class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
         this, "decoder_type", "mode_match",
         description{"Decoder algorithm: mode_match (pseudoinverse), allrad (T-design + VBAP), "
                     "or epad (energy-preserving)."},
-        setter{MIN_FUNCTION{if (m_decoder){const std::string name = args[0];
-    m_decoder->set_algorithm(algorithm_from_name(name));
-} return args;
-}
-}
-}
-;
+        setter{MIN_FUNCTION{
+            if (m_decoder) {
+                const std::string name = args[0];
+                m_decoder->set_algorithm(algorithm_from_name(name));
+            }
+            return args;
+        }}};
 
-attribute<bool> max_re{this, "max_re", false, description{"Apply per-order max-rE weighting to reduce side lobes."},
-                       setter{MIN_FUNCTION{const bool on = args[0];
-if (m_decoder) {
-    m_decoder->set_max_re(on);
-}
-return {on};
-}
-}
-}
-;
+    attribute<bool> max_re{this, "max_re", false, description{"Apply per-order max-rE weighting to reduce side lobes."},
+                           setter{MIN_FUNCTION{
+                               const bool on = args[0];
+                               if (m_decoder) {
+                                   m_decoder->set_max_re(on);
+                               }
+                               return {on};
+                           }}};
 
-/// Register Max's multichanneloutputs so the output reports the speaker count.
-message<> maxclass_setup{this, "maxclass_setup", MIN_FUNCTION{c74::max::t_class* c = args[0];
-c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs), "multichanneloutputs", c74::max::A_CANT,
-                          0);
-return {};
-}
-}
-;
+    /// Register Max's multichanneloutputs so the output reports the speaker count.
+    message<> maxclass_setup{this, "maxclass_setup",
+                             MIN_FUNCTION{
+                                 c74::max::t_class* c = args[0];
+                                 c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs),
+                                                           "multichanneloutputs", c74::max::A_CANT, 0);
+                                 return {};
+                             }};
 
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto frames = input.frame_count();
-    const auto in_ch  = input.channel_count();
-    const auto out_ch = output.channel_count();
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto frames = input.frame_count();
+        const auto in_ch  = input.channel_count();
+        const auto out_ch = output.channel_count();
 
-    for (auto i = 0; i < frames; ++i) {
-        for (long c = 0; c < m_in_channels; ++c) {
-            m_in_frame[c] = (c < in_ch) ? static_cast<float>(input.samples(c)[i]) : 0.0f;
+        for (auto i = 0; i < frames; ++i) {
+            for (long c = 0; c < m_in_channels; ++c) {
+                m_in_frame[c] = (c < in_ch) ? static_cast<float>(input.samples(c)[i]) : 0.0f;
+            }
+
+            m_decoder->process_frame(m_in_frame.data(), m_out_frame.data(), static_cast<size_t>(m_speaker_count));
+
+            for (long c = 0; c < out_ch; ++c) {
+                output.samples(c)[i] = (c < m_speaker_count) ? static_cast<double>(m_out_frame[c]) : 0.0;
+            }
         }
+    }
 
-        m_decoder->process_frame(m_in_frame.data(), m_out_frame.data(), static_cast<size_t>(m_speaker_count));
-
-        for (long c = 0; c < out_ch; ++c) {
-            output.samples(c)[i] = (c < m_speaker_count) ? static_cast<double>(m_out_frame[c]) : 0.0;
+  private:
+    static std::vector<ambitap::spherical_coord> layout_from_name(const std::string& name) {
+        using namespace ambitap::layouts;
+        if (name == "stereo") {
+            return stereo();
         }
+        if (name == "quad") {
+            return quad();
+        }
+        if (name == "surround_5_1" || name == "5.1") {
+            return surround_5_1();
+        }
+        if (name == "surround_7_1" || name == "7.1") {
+            return surround_7_1();
+        }
+        if (name == "surround_7_1_4" || name == "7.1.4") {
+            return surround_7_1_4();
+        }
+        if (name == "cube") {
+            return cube();
+        }
+        if (name == "hexagon") {
+            return hexagon();
+        }
+        if (name == "octagon") {
+            return octagon();
+        }
+        return {};
     }
-}
 
-private:
-static std::vector<ambitap::spherical_coord> layout_from_name(const std::string& name) {
-    using namespace ambitap::layouts;
-    if (name == "stereo") {
-        return stereo();
+    static ambitap::dsp::decoder_algorithm algorithm_from_name(const std::string& name) {
+        if (name == "allrad") {
+            return ambitap::dsp::decoder_algorithm::allrad;
+        }
+        if (name == "epad") {
+            return ambitap::dsp::decoder_algorithm::epad;
+        }
+        return ambitap::dsp::decoder_algorithm::mode_match;
     }
-    if (name == "quad") {
-        return quad();
-    }
-    if (name == "surround_5_1" || name == "5.1") {
-        return surround_5_1();
-    }
-    if (name == "surround_7_1" || name == "7.1") {
-        return surround_7_1();
-    }
-    if (name == "surround_7_1_4" || name == "7.1.4") {
-        return surround_7_1_4();
-    }
-    if (name == "cube") {
-        return cube();
-    }
-    if (name == "hexagon") {
-        return hexagon();
-    }
-    if (name == "octagon") {
-        return octagon();
-    }
-    return {};
-}
 
-static ambitap::dsp::decoder_algorithm algorithm_from_name(const std::string& name) {
-    if (name == "allrad") {
-        return ambitap::dsp::decoder_algorithm::allrad;
+    static long mc_outputs(minwrap<ambitap_decode>* self, long /* outlet_index */) {
+        return self->m_min_object.m_speaker_count;
     }
-    if (name == "epad") {
-        return ambitap::dsp::decoder_algorithm::epad;
-    }
-    return ambitap::dsp::decoder_algorithm::mode_match;
-}
-
-static long mc_outputs(minwrap<ambitap_decode>* self, long /* outlet_index */) {
-    return self->m_min_object.m_speaker_count;
-}
-}
-;
+};
 
 MIN_EXTERNAL(ambitap_decode);

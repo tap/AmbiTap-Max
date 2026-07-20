@@ -49,79 +49,70 @@ class ambitap_doppler : public object<ambitap_doppler>, public mc_operator<> {
 
     attribute<number> distance{this, "distance", 1.0,
                                description{"Source-to-listener distance in meters. Modulate for Doppler."},
-                               setter{MIN_FUNCTION{const double v = args[0];
-    if (m_doppler) {
-        m_doppler->set_distance(static_cast<float>(v));
-    }
-    return {v};
-}
-}
-}
-;
+                               setter{MIN_FUNCTION{
+                                   const double v = args[0];
+                                   if (m_doppler) {
+                                       m_doppler->set_distance(static_cast<float>(v));
+                                   }
+                                   return {v};
+                               }}};
 
-attribute<number> speed_of_sound{this, "speed_of_sound", 343.0, description{"Speed of sound in m/s."},
-                                 setter{MIN_FUNCTION{const double v = args[0];
-if (m_doppler) {
-    m_doppler->set_speed_of_sound(static_cast<float>(v));
-}
-return {v};
-}
-}
-}
-;
+    attribute<number> speed_of_sound{this, "speed_of_sound", 343.0, description{"Speed of sound in m/s."},
+                                     setter{MIN_FUNCTION{
+                                         const double v = args[0];
+                                         if (m_doppler) {
+                                             m_doppler->set_speed_of_sound(static_cast<float>(v));
+                                         }
+                                         return {v};
+                                     }}};
 
-attribute<number> max_distance{this, "max_distance", 50.0,
-                               description{"Maximum distance (sizes the delay buffer). Reallocates on change."},
-                               setter{MIN_FUNCTION{const double v = args[0];
-if (m_doppler) {
-    m_doppler->set_max_distance(static_cast<float>(v));
-}
-return {v};
-}
-}
-}
-;
+    attribute<number> max_distance{this, "max_distance", 50.0,
+                                   description{"Maximum distance (sizes the delay buffer). Reallocates on change."},
+                                   setter{MIN_FUNCTION{
+                                       const double v = args[0];
+                                       if (m_doppler) {
+                                           m_doppler->set_max_distance(static_cast<float>(v));
+                                       }
+                                       return {v};
+                                   }}};
 
-/// The delay buffers are sized from the host sample rate.
-message<> dspsetup{this, "dspsetup", MIN_FUNCTION{const double sr = args[0];
-if (m_doppler) {
-    m_doppler->prepare(static_cast<float>(sr));
-}
-return {};
-}
-}
-;
+    /// The delay buffers are sized from the host sample rate.
+    message<> dspsetup{this, "dspsetup",
+                       MIN_FUNCTION{
+                           const double sr = args[0];
+                           if (m_doppler) {
+                               m_doppler->prepare(static_cast<float>(sr));
+                           }
+                           return {};
+                       }};
 
-message<> maxclass_setup{this, "maxclass_setup", MIN_FUNCTION{c74::max::t_class* c = args[0];
-c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs), "multichanneloutputs", c74::max::A_CANT,
-                          0);
-return {};
-}
-}
-;
+    message<> maxclass_setup{this, "maxclass_setup",
+                             MIN_FUNCTION{
+                                 c74::max::t_class* c = args[0];
+                                 c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs),
+                                                           "multichanneloutputs", c74::max::A_CANT, 0);
+                                 return {};
+                             }};
 
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto frames = input.frame_count();
-    const auto in_ch  = input.channel_count();
-    const auto out_ch = output.channel_count();
-    const long n      = m_channel_count;
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto frames = input.frame_count();
+        const auto in_ch  = input.channel_count();
+        const auto out_ch = output.channel_count();
+        const long n      = m_channel_count;
 
-    for (auto i = 0; i < frames; ++i) {
-        for (long c = 0; c < n; ++c) {
-            m_in_frame[c] = (c < in_ch) ? static_cast<float>(input.samples(c)[i]) : 0.0f;
-        }
-        m_doppler->process_frame(m_in_frame.data(), m_out_frame.data());
-        for (long c = 0; c < out_ch; ++c) {
-            output.samples(c)[i] = (c < n) ? static_cast<double>(m_out_frame[c]) : 0.0;
+        for (auto i = 0; i < frames; ++i) {
+            for (long c = 0; c < n; ++c) {
+                m_in_frame[c] = (c < in_ch) ? static_cast<float>(input.samples(c)[i]) : 0.0f;
+            }
+            m_doppler->process_frame(m_in_frame.data(), m_out_frame.data());
+            for (long c = 0; c < out_ch; ++c) {
+                output.samples(c)[i] = (c < n) ? static_cast<double>(m_out_frame[c]) : 0.0;
+            }
         }
     }
-}
 
-private:
-static long mc_outputs(minwrap<ambitap_doppler>* self, long) {
-    return self->m_min_object.m_channel_count;
-}
-}
-;
+  private:
+    static long mc_outputs(minwrap<ambitap_doppler>* self, long) { return self->m_min_object.m_channel_count; }
+};
 
 MIN_EXTERNAL(ambitap_doppler);
