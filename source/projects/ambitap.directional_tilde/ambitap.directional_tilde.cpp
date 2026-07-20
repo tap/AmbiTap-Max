@@ -49,70 +49,61 @@ class ambitap_directional : public object<ambitap_directional>, public mc_operat
 
     attribute<number> azimuth{this, "azimuth", 0.0,
                               description{"Boost-direction azimuth in radians. 0 = front, pi/2 = left."},
-                              setter{MIN_FUNCTION{const double v = args[0];
-    if (m_loudness) {
-        m_loudness->set_azimuth(static_cast<float>(v));
-    }
-    return {v};
-}
-}
-}
-;
+                              setter{MIN_FUNCTION{
+                                  const double v = args[0];
+                                  if (m_loudness) {
+                                      m_loudness->set_azimuth(static_cast<float>(v));
+                                  }
+                                  return {v};
+                              }}};
 
-attribute<number> elevation{this, "elevation", 0.0,
-                            description{"Boost-direction elevation in radians. 0 = horizon, pi/2 = zenith."},
-                            setter{MIN_FUNCTION{const double v = args[0];
-if (m_loudness) {
-    m_loudness->set_elevation(static_cast<float>(v));
-}
-return {v};
-}
-}
-}
-;
+    attribute<number> elevation{this, "elevation", 0.0,
+                                description{"Boost-direction elevation in radians. 0 = horizon, pi/2 = zenith."},
+                                setter{MIN_FUNCTION{
+                                    const double v = args[0];
+                                    if (m_loudness) {
+                                        m_loudness->set_elevation(static_cast<float>(v));
+                                    }
+                                    return {v};
+                                }}};
 
-attribute<number> gain{this, "gain", 1.0,
-                       description{"Linear gain at the look direction. 1 = bypass, 0 = attenuate, >1 = boost."},
-                       setter{MIN_FUNCTION{const double v = args[0];
-if (m_loudness) {
-    m_loudness->set_gain(static_cast<float>(v));
-}
-return {v};
-}
-}
-}
-;
+    attribute<number> gain{this, "gain", 1.0,
+                           description{"Linear gain at the look direction. 1 = bypass, 0 = attenuate, >1 = boost."},
+                           setter{MIN_FUNCTION{
+                               const double v = args[0];
+                               if (m_loudness) {
+                                   m_loudness->set_gain(static_cast<float>(v));
+                               }
+                               return {v};
+                           }}};
 
-message<> maxclass_setup{this, "maxclass_setup", MIN_FUNCTION{c74::max::t_class* c = args[0];
-c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs), "multichanneloutputs", c74::max::A_CANT,
-                          0);
-return {};
-}
-}
-;
+    message<> maxclass_setup{this, "maxclass_setup",
+                             MIN_FUNCTION{
+                                 c74::max::t_class* c = args[0];
+                                 c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs),
+                                                           "multichanneloutputs", c74::max::A_CANT, 0);
+                                 return {};
+                             }};
 
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto frames = input.frame_count();
-    const auto in_ch  = input.channel_count();
-    const auto out_ch = output.channel_count();
-    const long n      = m_channel_count;
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto frames = input.frame_count();
+        const auto in_ch  = input.channel_count();
+        const auto out_ch = output.channel_count();
+        const long n      = m_channel_count;
 
-    for (auto i = 0; i < frames; ++i) {
-        for (long c = 0; c < n; ++c) {
-            m_in_frame[c] = (c < in_ch) ? static_cast<float>(input.samples(c)[i]) : 0.0f;
-        }
-        m_loudness->process_frame(m_in_frame.data(), m_out_frame.data());
-        for (long c = 0; c < out_ch; ++c) {
-            output.samples(c)[i] = (c < n) ? static_cast<double>(m_out_frame[c]) : 0.0;
+        for (auto i = 0; i < frames; ++i) {
+            for (long c = 0; c < n; ++c) {
+                m_in_frame[c] = (c < in_ch) ? static_cast<float>(input.samples(c)[i]) : 0.0f;
+            }
+            m_loudness->process_frame(m_in_frame.data(), m_out_frame.data());
+            for (long c = 0; c < out_ch; ++c) {
+                output.samples(c)[i] = (c < n) ? static_cast<double>(m_out_frame[c]) : 0.0;
+            }
         }
     }
-}
 
-private:
-static long mc_outputs(minwrap<ambitap_directional>* self, long) {
-    return self->m_min_object.m_channel_count;
-}
-}
-;
+  private:
+    static long mc_outputs(minwrap<ambitap_directional>* self, long) { return self->m_min_object.m_channel_count; }
+};
 
 MIN_EXTERNAL(ambitap_directional);

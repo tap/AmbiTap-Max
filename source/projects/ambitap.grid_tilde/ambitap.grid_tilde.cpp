@@ -64,118 +64,115 @@ class ambitap_grid : public object<ambitap_grid>, public mc_operator<> {
         this, "azimuth_steps", 32,
         description{"Grid azimuth resolution (columns; rows are half). Rounded to even, 4-128. "
                     "Rebuilds the SH table on the control thread."},
-        setter{MIN_FUNCTION{int steps = std::clamp(static_cast<int>(args[0]), 4, 128) & ~1;
-    if (m_grid) {
-        m_grid->set_azimuth_steps(steps);
-    }
-    return {steps};
-}
-}
-}
-;
+        setter{MIN_FUNCTION{
+            int steps = std::clamp(static_cast<int>(args[0]), 4, 128) & ~1;
+            if (m_grid) {
+                m_grid->set_azimuth_steps(steps);
+            }
+            return {steps};
+        }}};
 
-attribute<number> smoothing_time{this, "smoothing_time", 200.0,
-                                 description{"Per-direction energy smoothing time constant, milliseconds."},
-                                 setter{MIN_FUNCTION{const double v = args[0];
-if (m_grid) {
-    m_grid->set_smoothing_time_ms(static_cast<float>(v));
-}
-return {v};
-}
-}
-}
-;
+    attribute<number> smoothing_time{this, "smoothing_time", 200.0,
+                                     description{"Per-direction energy smoothing time constant, milliseconds."},
+                                     setter{MIN_FUNCTION{
+                                         const double v = args[0];
+                                         if (m_grid) {
+                                             m_grid->set_smoothing_time_ms(static_cast<float>(v));
+                                         }
+                                         return {v};
+                                     }}};
 
-attribute<number> dynamic_range{this, "dynamic_range", 40.0,
-                                description{"Display dynamic range in dB below the peak mapped to 0..1."}};
+    attribute<number> dynamic_range{this, "dynamic_range", 40.0,
+                                    description{"Display dynamic range in dB below the peak mapped to 0..1."}};
 
-/// Snapshot the smoothed grid (any-thread safe) and send it as one list.
-message<> bang{this, "bang", "Output the current grid snapshot.", MIN_FUNCTION{if (!m_grid){return {};
-}
-const auto image = m_grid->snapshot(static_cast<float>(static_cast<double>(dynamic_range)));
-if (image.data.empty()) {
-    return {};
-}
-atoms out;
-out.reserve(4 + image.data.size());
-out.push_back("grid");
-out.push_back(image.rows);
-out.push_back(image.cols);
-out.push_back(image.peak_db);
-for (const float v : image.data) {
-    out.push_back(v);
-}
-m_grid_out.send(out);
-return {};
-}
-}
-;
+    /// Snapshot the smoothed grid (any-thread safe) and send it as one list.
+    message<> bang{this, "bang", "Output the current grid snapshot.",
+                   MIN_FUNCTION{
+                       if (!m_grid) {
+                           return {};
+                       }
+                       const auto image = m_grid->snapshot(static_cast<float>(static_cast<double>(dynamic_range)));
+                       if (image.data.empty()) {
+                           return {};
+                       }
+                       atoms out;
+                       out.reserve(4 + image.data.size());
+                       out.push_back("grid");
+                       out.push_back(image.rows);
+                       out.push_back(image.cols);
+                       out.push_back(image.peak_db);
+                       for (const float v : image.data) {
+                           out.push_back(v);
+                       }
+                       m_grid_out.send(out);
+                       return {};
+                   }};
 
-/// Smoothing tracks the host sample rate; planar scratch tracks the vector
-/// size so the audio path never allocates.
-message<> dspsetup{this, "dspsetup", MIN_FUNCTION{const double sr = args[0];
-const int vector_size = args[1];
-m_grid->prepare(static_cast<float>(sr));
-m_max_frames = vector_size;
-m_planar.assign(static_cast<size_t>(m_channel_count) * static_cast<size_t>(vector_size), 0.0f);
-return {};
-}
-}
-;
+    /// Smoothing tracks the host sample rate; planar scratch tracks the vector
+    /// size so the audio path never allocates.
+    message<> dspsetup{this, "dspsetup",
+                       MIN_FUNCTION{
+                           const double sr          = args[0];
+                           const int    vector_size = args[1];
+                           m_grid->prepare(static_cast<float>(sr));
+                           m_max_frames = vector_size;
+                           m_planar.assign(static_cast<size_t>(m_channel_count) * static_cast<size_t>(vector_size),
+                                           0.0f);
+                           return {};
+                       }};
 
-/// Register Max's multichanneloutputs so the passthrough reports (order+1)^2
-/// channels. (min-api wraps MC inlets, but not MC outputs.)
-message<> maxclass_setup{this, "maxclass_setup", MIN_FUNCTION{c74::max::t_class* c = args[0];
-c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs), "multichanneloutputs", c74::max::A_CANT,
-                          0);
-return {};
-}
-}
-;
+    /// Register Max's multichanneloutputs so the passthrough reports (order+1)^2
+    /// channels. (min-api wraps MC inlets, but not MC outputs.)
+    message<> maxclass_setup{this, "maxclass_setup",
+                             MIN_FUNCTION{
+                                 c74::max::t_class* c = args[0];
+                                 c74::max::class_addmethod(c, reinterpret_cast<c74::max::method>(mc_outputs),
+                                                           "multichanneloutputs", c74::max::A_CANT, 0);
+                                 return {};
+                             }};
 
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto frames = input.frame_count();
-    const auto in_ch  = input.channel_count();
-    const auto out_ch = output.channel_count();
-    const long n      = m_channel_count;
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto frames = input.frame_count();
+        const auto in_ch  = input.channel_count();
+        const auto out_ch = output.channel_count();
+        const long n      = m_channel_count;
 
-    // Passthrough (double precision, zero-padded to the bus width).
-    for (long c = 0; c < out_ch; ++c) {
-        double* out = output.samples(c);
-        if (c < in_ch) {
-            const double* in = input.samples(c);
-            std::copy_n(in, frames, out);
-        }
-        else {
-            std::fill_n(out, frames, 0.0);
-        }
-    }
-
-    // Gather planar float channels for the analyzer (allocation-free).
-    if (m_planar.empty() || frames > m_max_frames) {
-        return; // dsp not set up yet
-    }
-    for (long c = 0; c < n; ++c) {
-        float* dst = m_planar.data() + static_cast<size_t>(c) * static_cast<size_t>(m_max_frames);
-        if (c < in_ch) {
-            const double* in = input.samples(c);
-            for (auto i = 0; i < frames; ++i) {
-                dst[i] = static_cast<float>(in[i]);
+        // Passthrough (double precision, zero-padded to the bus width).
+        for (long c = 0; c < out_ch; ++c) {
+            double* out = output.samples(c);
+            if (c < in_ch) {
+                const double* in = input.samples(c);
+                std::copy_n(in, frames, out);
+            }
+            else {
+                std::fill_n(out, frames, 0.0);
             }
         }
-        else {
-            std::fill_n(dst, frames, 0.0f);
-        }
-        m_ptrs[static_cast<size_t>(c)] = dst;
-    }
-    m_grid->process(m_ptrs.data(), static_cast<size_t>(frames));
-}
 
-private:
-static long mc_outputs(minwrap<ambitap_grid>* self, long /* outlet_index */) {
-    return self->m_min_object.m_channel_count;
-}
-}
-;
+        // Gather planar float channels for the analyzer (allocation-free).
+        if (m_planar.empty() || frames > m_max_frames) {
+            return; // dsp not set up yet
+        }
+        for (long c = 0; c < n; ++c) {
+            float* dst = m_planar.data() + static_cast<size_t>(c) * static_cast<size_t>(m_max_frames);
+            if (c < in_ch) {
+                const double* in = input.samples(c);
+                for (auto i = 0; i < frames; ++i) {
+                    dst[i] = static_cast<float>(in[i]);
+                }
+            }
+            else {
+                std::fill_n(dst, frames, 0.0f);
+            }
+            m_ptrs[static_cast<size_t>(c)] = dst;
+        }
+        m_grid->process(m_ptrs.data(), static_cast<size_t>(frames));
+    }
+
+  private:
+    static long mc_outputs(minwrap<ambitap_grid>* self, long /* outlet_index */) {
+        return self->m_min_object.m_channel_count;
+    }
+};
 
 MIN_EXTERNAL(ambitap_grid);

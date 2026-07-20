@@ -111,190 +111,183 @@ class ambitap_panbin : public object<ambitap_panbin>, public vector_operator<> {
 
     attribute<number> azimuth{this, "azimuth", 0.0,
                               description{"Source azimuth in radians. 0 = front, pi/2 = left, pi = behind."},
-                              setter{MIN_FUNCTION{const double value = args[0];
-    set_direction(value, m_elevation_value);
-    return {value};
-}
-}
-}
-;
+                              setter{MIN_FUNCTION{
+                                  const double value = args[0];
+                                  set_direction(value, m_elevation_value);
+                                  return {value};
+                              }}};
 
-attribute<number> elevation{this, "elevation", 0.0,
-                            description{"Source elevation in radians. 0 = horizon, pi/2 = zenith."},
-                            setter{MIN_FUNCTION{const double value = args[0];
-set_direction(m_azimuth_value, value);
-return {value};
-}
-}
-}
-;
+    attribute<number> elevation{this, "elevation", 0.0,
+                                description{"Source elevation in radians. 0 = horizon, pi/2 = zenith."},
+                                setter{MIN_FUNCTION{
+                                    const double value = args[0];
+                                    set_direction(m_azimuth_value, value);
+                                    return {value};
+                                }}};
 
-attribute<number> gain{this, "gain", 1.0, description{"Linear output gain (post-convolution)."},
-                       setter{MIN_FUNCTION{const double value = args[0];
-m_gain.store(static_cast<float>(value), std::memory_order_relaxed);
-return {value};
-}
-}
-}
-;
+    attribute<number> gain{this, "gain", 1.0, description{"Linear output gain (post-convolution)."},
+                           setter{MIN_FUNCTION{
+                               const double value = args[0];
+                               m_gain.store(static_cast<float>(value), std::memory_order_relaxed);
+                               return {value};
+                           }}};
 
-/// Build the convolvers for the host's signal vector size and sample rate.
-/// Called by Max whenever the dsp chain is (re)compiled — audio is not
-/// running, so we can rebuild everything synchronously.
-message<>  dspsetup{this, "dspsetup", MIN_FUNCTION{const double sample_rate = args[0];
-const long vector_size = args[1];
-prepare(vector_size, sample_rate);
-return {};
-}
-}
-;
+    /// Build the convolvers for the host's signal vector size and sample rate.
+    /// Called by Max whenever the dsp chain is (re)compiled — audio is not
+    /// running, so we can rebuild everything synchronously.
+    message<> dspsetup{this, "dspsetup",
+                       MIN_FUNCTION{
+                           const double sample_rate = args[0];
+                           const long   vector_size = args[1];
+                           prepare(vector_size, sample_rate);
+                           return {};
+                       }};
 
-void operator()(audio_bundle input, audio_bundle output) {
-    const auto frames = input.frame_count();
-    double*    out_l  = output.samples(0);
-    double*    out_r  = output.samples(1);
+    void operator()(audio_bundle input, audio_bundle output) {
+        const auto frames = input.frame_count();
+        double*    out_l  = output.samples(0);
+        double*    out_r  = output.samples(1);
 
-    // Convolvers need a power-of-two vector size, set up in dspsetup. If
-    // the current block doesn't match what we prepared, emit silence.
-    if (m_block_size == 0 || frames != m_block_size) {
-        for (auto i = 0; i < frames; ++i) {
-            out_l[i] = 0.0;
-            out_r[i] = 0.0;
-        }
-        return;
-    }
-
-    const double* in = input.samples(0);
-    for (auto i = 0; i < frames; ++i) {
-        m_in_buf[i] = static_cast<float>(in[i]);
-    }
-
-    // Adopt a newly published direction, but only when the trash slot is
-    // free to receive the pair we would retire (the control thread reaps
-    // it; the audio thread never frees). A full slot just defers the
-    // switch to a later block.
-    convolver_pair* incoming = nullptr;
-    if (m_trash.load(std::memory_order_relaxed) == nullptr) {
-        incoming = m_pending.exchange(nullptr, std::memory_order_acq_rel);
-    }
-
-    if (incoming && m_active) {
-        // Crossfade: render the block through both the old and the new
-        // pair, ramp between them, then park the old pair for reaping.
-        m_active->left.process(m_in_buf.data(), m_fade_l.data());
-        m_active->right.process(m_in_buf.data(), m_fade_r.data());
-        incoming->left.process(m_in_buf.data(), m_left_buf.data());
-        incoming->right.process(m_in_buf.data(), m_right_buf.data());
-
-        const float step = 1.0f / static_cast<float>(frames);
-        float       w    = 0.0f;
-        for (auto i = 0; i < frames; ++i) {
-            w += step;
-            m_left_buf[i]  = m_fade_l[i] + w * (m_left_buf[i] - m_fade_l[i]);
-            m_right_buf[i] = m_fade_r[i] + w * (m_right_buf[i] - m_fade_r[i]);
-        }
-        m_trash.store(m_active, std::memory_order_release);
-        m_active = incoming;
-    }
-    else {
-        if (incoming) {
-            m_active = incoming; // first-ever pair: nothing to fade from
-        }
-        if (!m_active) {
+        // Convolvers need a power-of-two vector size, set up in dspsetup. If
+        // the current block doesn't match what we prepared, emit silence.
+        if (m_block_size == 0 || frames != m_block_size) {
             for (auto i = 0; i < frames; ++i) {
                 out_l[i] = 0.0;
                 out_r[i] = 0.0;
             }
             return;
         }
-        m_active->left.process(m_in_buf.data(), m_left_buf.data());
-        m_active->right.process(m_in_buf.data(), m_right_buf.data());
-    }
 
-    // Gain: linear ramp from the previous value to the target across this
-    // block (click-free, race-free) — the binaural_core volume pattern.
-    const float target = m_gain.load(std::memory_order_relaxed);
-    float       g      = m_gain_current;
-    const float g_step = (target - g) / static_cast<float>(frames);
-    for (auto i = 0; i < frames; ++i) {
-        g += g_step;
-        out_l[i] = static_cast<double>(m_left_buf[i] * g);
-        out_r[i] = static_cast<double>(m_right_buf[i] * g);
-    }
-    m_gain_current = target;
-}
-
-private:
-/// Reconstruct the per-ear HRIRs at the current direction — the same sum
-/// binaural_renderer::probe_response performs (SH basis at the direction
-/// weighting the built-in order-5 SH-domain FIRs) — resampled to the host
-/// rate, and wrap them in a fresh convolver pair. Control thread only.
-std::unique_ptr<convolver_pair> build_pair() {
-    float sh[ambitap::k_max_channel_count];
-    ambitap::evaluate_sh(ambitap::builtin_hrtf_order, static_cast<float>(m_azimuth_value),
-                         static_cast<float>(m_elevation_value), sh);
-
-    std::vector<float> left(ambitap::builtin_hrtf_length, 0.0f);
-    std::vector<float> right(ambitap::builtin_hrtf_length, 0.0f);
-    for (size_t ch = 0; ch < ambitap::builtin_hrtf_channels; ++ch) {
-        for (size_t t = 0; t < ambitap::builtin_hrtf_length; ++t) {
-            left[t] += sh[ch] * ambitap::builtin_hrtf_left[ch][t];
-            right[t] += sh[ch] * ambitap::builtin_hrtf_right[ch][t];
+        const double* in = input.samples(0);
+        for (auto i = 0; i < frames; ++i) {
+            m_in_buf[i] = static_cast<float>(in[i]);
         }
+
+        // Adopt a newly published direction, but only when the trash slot is
+        // free to receive the pair we would retire (the control thread reaps
+        // it; the audio thread never frees). A full slot just defers the
+        // switch to a later block.
+        convolver_pair* incoming = nullptr;
+        if (m_trash.load(std::memory_order_relaxed) == nullptr) {
+            incoming = m_pending.exchange(nullptr, std::memory_order_acq_rel);
+        }
+
+        if (incoming && m_active) {
+            // Crossfade: render the block through both the old and the new
+            // pair, ramp between them, then park the old pair for reaping.
+            m_active->left.process(m_in_buf.data(), m_fade_l.data());
+            m_active->right.process(m_in_buf.data(), m_fade_r.data());
+            incoming->left.process(m_in_buf.data(), m_left_buf.data());
+            incoming->right.process(m_in_buf.data(), m_right_buf.data());
+
+            const float step = 1.0f / static_cast<float>(frames);
+            float       w    = 0.0f;
+            for (auto i = 0; i < frames; ++i) {
+                w += step;
+                m_left_buf[i]  = m_fade_l[i] + w * (m_left_buf[i] - m_fade_l[i]);
+                m_right_buf[i] = m_fade_r[i] + w * (m_right_buf[i] - m_fade_r[i]);
+            }
+            m_trash.store(m_active, std::memory_order_release);
+            m_active = incoming;
+        }
+        else {
+            if (incoming) {
+                m_active = incoming; // first-ever pair: nothing to fade from
+            }
+            if (!m_active) {
+                for (auto i = 0; i < frames; ++i) {
+                    out_l[i] = 0.0;
+                    out_r[i] = 0.0;
+                }
+                return;
+            }
+            m_active->left.process(m_in_buf.data(), m_left_buf.data());
+            m_active->right.process(m_in_buf.data(), m_right_buf.data());
+        }
+
+        // Gain: linear ramp from the previous value to the target across this
+        // block (click-free, race-free) — the binaural_core volume pattern.
+        const float target = m_gain.load(std::memory_order_relaxed);
+        float       g      = m_gain_current;
+        const float g_step = (target - g) / static_cast<float>(frames);
+        for (auto i = 0; i < frames; ++i) {
+            g += g_step;
+            out_l[i] = static_cast<double>(m_left_buf[i] * g);
+            out_r[i] = static_cast<double>(m_right_buf[i] * g);
+        }
+        m_gain_current = target;
     }
 
-    const auto host_rate = static_cast<float>(m_sample_rate);
-    if (host_rate != ambitap::builtin_hrtf_sample_rate) {
-        left  = ambitap::resample_fir(left.data(), left.size(), ambitap::builtin_hrtf_sample_rate, host_rate);
-        right = ambitap::resample_fir(right.data(), right.size(), ambitap::builtin_hrtf_sample_rate, host_rate);
+  private:
+    /// Reconstruct the per-ear HRIRs at the current direction — the same sum
+    /// binaural_renderer::probe_response performs (SH basis at the direction
+    /// weighting the built-in order-5 SH-domain FIRs) — resampled to the host
+    /// rate, and wrap them in a fresh convolver pair. Control thread only.
+    std::unique_ptr<convolver_pair> build_pair() {
+        float sh[ambitap::k_max_channel_count];
+        ambitap::evaluate_sh(ambitap::builtin_hrtf_order, static_cast<float>(m_azimuth_value),
+                             static_cast<float>(m_elevation_value), sh);
+
+        std::vector<float> left(ambitap::builtin_hrtf_length, 0.0f);
+        std::vector<float> right(ambitap::builtin_hrtf_length, 0.0f);
+        for (size_t ch = 0; ch < ambitap::builtin_hrtf_channels; ++ch) {
+            for (size_t t = 0; t < ambitap::builtin_hrtf_length; ++t) {
+                left[t] += sh[ch] * ambitap::builtin_hrtf_left[ch][t];
+                right[t] += sh[ch] * ambitap::builtin_hrtf_right[ch][t];
+            }
+        }
+
+        const auto host_rate = static_cast<float>(m_sample_rate);
+        if (host_rate != ambitap::builtin_hrtf_sample_rate) {
+            left  = ambitap::resample_fir(left.data(), left.size(), ambitap::builtin_hrtf_sample_rate, host_rate);
+            right = ambitap::resample_fir(right.data(), right.size(), ambitap::builtin_hrtf_sample_rate, host_rate);
+        }
+
+        return std::make_unique<convolver_pair>(static_cast<size_t>(m_block_size), left, right);
     }
 
-    return std::make_unique<convolver_pair>(static_cast<size_t>(m_block_size), left, right);
-}
+    /// Store the new direction and, when prepared, publish a freshly built
+    /// convolver pair for the audio thread to crossfade to.
+    void set_direction(double azimuth_radians, double elevation_radians) {
+        std::lock_guard<std::mutex> lock(m_control_mutex);
+        m_azimuth_value   = azimuth_radians;
+        m_elevation_value = elevation_radians;
+        if (m_block_size == 0) {
+            return; // not prepared yet; dspsetup builds the first pair
+        }
 
-/// Store the new direction and, when prepared, publish a freshly built
-/// convolver pair for the audio thread to crossfade to.
-void set_direction(double azimuth_radians, double elevation_radians) {
-    std::lock_guard<std::mutex> lock(m_control_mutex);
-    m_azimuth_value   = azimuth_radians;
-    m_elevation_value = elevation_radians;
-    if (m_block_size == 0) {
-        return; // not prepared yet; dspsetup builds the first pair
+        delete m_trash.exchange(nullptr, std::memory_order_acq_rel); // reap
+        // A still-unadopted previous pending pair comes back to us here and is
+        // deleted — the audio thread only ever sees the newest direction.
+        delete m_pending.exchange(build_pair().release(), std::memory_order_acq_rel);
     }
 
-    delete m_trash.exchange(nullptr, std::memory_order_acq_rel); // reap
-    // A still-unadopted previous pending pair comes back to us here and is
-    // deleted — the audio thread only ever sees the newest direction.
-    delete m_pending.exchange(build_pair().release(), std::memory_order_acq_rel);
-}
+    void prepare(long vector_size, double sample_rate) {
+        std::lock_guard<std::mutex> lock(m_control_mutex);
 
-void prepare(long vector_size, double sample_rate) {
-    std::lock_guard<std::mutex> lock(m_control_mutex);
+        // Audio is stopped during dspsetup: reclaim every pair synchronously.
+        delete m_pending.exchange(nullptr);
+        delete m_trash.exchange(nullptr);
+        delete m_active;
+        m_active = nullptr;
 
-    // Audio is stopped during dspsetup: reclaim every pair synchronously.
-    delete m_pending.exchange(nullptr);
-    delete m_trash.exchange(nullptr);
-    delete m_active;
-    m_active = nullptr;
+        const bool valid = (vector_size >= 4) && ((vector_size & (vector_size - 1)) == 0);
+        if (!valid) {
+            m_block_size = 0; // unsupported vector size -> stay silent
+            return;
+        }
+        m_block_size  = vector_size;
+        m_sample_rate = sample_rate;
 
-    const bool valid = (vector_size >= 4) && ((vector_size & (vector_size - 1)) == 0);
-    if (!valid) {
-        m_block_size = 0; // unsupported vector size -> stay silent
-        return;
+        const auto v = static_cast<size_t>(vector_size);
+        m_in_buf.assign(v, 0.0f);
+        m_left_buf.assign(v, 0.0f);
+        m_right_buf.assign(v, 0.0f);
+        m_fade_l.assign(v, 0.0f);
+        m_fade_r.assign(v, 0.0f);
+
+        m_active = build_pair().release();
     }
-    m_block_size  = vector_size;
-    m_sample_rate = sample_rate;
-
-    const auto v = static_cast<size_t>(vector_size);
-    m_in_buf.assign(v, 0.0f);
-    m_left_buf.assign(v, 0.0f);
-    m_right_buf.assign(v, 0.0f);
-    m_fade_l.assign(v, 0.0f);
-    m_fade_r.assign(v, 0.0f);
-
-    m_active = build_pair().release();
-}
-}
-;
+};
 
 MIN_EXTERNAL(ambitap_panbin);
