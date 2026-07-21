@@ -32,8 +32,8 @@ class ambitap_vmic : public object<ambitap_vmic>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::virtual_mic> m_mic;
-    long                                       m_channels{4};
-    std::vector<float>                         m_in_frame;
+    long                                         m_channels{4};
+    std::vector<float>                           m_in_frame;
 
   public:
     explicit ambitap_vmic(const atoms& args = {}) {

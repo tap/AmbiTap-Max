@@ -55,11 +55,11 @@ class ambitap_distance : public object<ambitap_distance>, public mc_operator<> {
 
     std::unique_ptr<tap::ambi::dsp::doppler> m_doppler;
     std::unique_ptr<tap::ambi::dsp::nfc>     m_nfc;
-    long                                   m_channel_count{4};
-    float                                  m_fs{48000.0f};
-    float                                  m_distance_smooth{1.0f};
-    std::vector<float>                     m_frame;
-    std::vector<float>                     m_lp_state;
+    long                                     m_channel_count{4};
+    float                                    m_fs{48000.0f};
+    float                                    m_distance_smooth{1.0f};
+    std::vector<float>                       m_frame;
+    std::vector<float>                       m_lp_state;
 
   public:
     explicit ambitap_distance(const atoms& args = {}) {

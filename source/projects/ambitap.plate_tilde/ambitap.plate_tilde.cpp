@@ -50,15 +50,15 @@ class ambitap_plate : public object<ambitap_plate>, public mc_operator<> {
     static constexpr float k_mix_slew = 1.0f / 256.0f;
 
     std::unique_ptr<tap::ambi::dsp::plate> m_plate;
-    long                                 m_in_channels{2};
-    long                                 m_out_channels{2};
-    long                                 m_block_size{0};
-    float                                m_wet_smooth{1.0f};
-    float                                m_dry_smooth{0.0f};
-    std::vector<std::vector<float>>      m_in_bufs;  // [channel][block]
-    std::vector<std::vector<float>>      m_out_bufs; // [channel][block]
-    std::vector<const float*>            m_in_ptrs;  // into m_in_bufs
-    std::vector<float*>                  m_out_ptrs; // into m_out_bufs
+    long                                   m_in_channels{2};
+    long                                   m_out_channels{2};
+    long                                   m_block_size{0};
+    float                                  m_wet_smooth{1.0f};
+    float                                  m_dry_smooth{0.0f};
+    std::vector<std::vector<float>>        m_in_bufs;  // [channel][block]
+    std::vector<std::vector<float>>        m_out_bufs; // [channel][block]
+    std::vector<const float*>              m_in_ptrs;  // into m_in_bufs
+    std::vector<float*>                    m_out_ptrs; // into m_out_bufs
 
   public:
     /// Creation args: <inputs> <outputs> <branches>.

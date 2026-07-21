@@ -30,7 +30,7 @@ class ambitap_mirror : public object<ambitap_mirror>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::mirror> m_mirror;
-    long                                  m_channel_count{4};
+    long                                    m_channel_count{4};
 
   public:
     explicit ambitap_mirror(const atoms& args = {}) {

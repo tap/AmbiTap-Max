@@ -31,7 +31,7 @@ class ambitap_format : public object<ambitap_format>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::format_converter> m_converter;
-    long                                            m_channel_count{4};
+    long                                              m_channel_count{4};
 
   public:
     explicit ambitap_format(const atoms& args = {}) {
