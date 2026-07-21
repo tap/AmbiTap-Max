@@ -42,7 +42,7 @@ class ambitap_grid : public object<ambitap_grid>, public mc_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::analysis::soundfield_grid> m_grid;
+    std::unique_ptr<tap::ambi::analysis::soundfield_grid> m_grid;
     long                                                m_channel_count{4};
     std::vector<float>                                  m_planar; // sized in dspsetup, reused (RT-safe)
     std::vector<const float*>                           m_ptrs;
@@ -53,9 +53,9 @@ class ambitap_grid : public object<ambitap_grid>, public mc_operator<> {
     explicit ambitap_grid(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 0, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 0, tap::ambi::k_max_order);
         }
-        m_grid          = std::make_unique<ambitap::analysis::soundfield_grid>(order);
+        m_grid          = std::make_unique<tap::ambi::analysis::soundfield_grid>(order);
         m_channel_count = static_cast<long>(m_grid->channels());
         m_ptrs.assign(static_cast<size_t>(m_channel_count), nullptr);
     }

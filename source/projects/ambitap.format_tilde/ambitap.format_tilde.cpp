@@ -30,7 +30,7 @@ class ambitap_format : public object<ambitap_format>, public mc_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::format_converter> m_converter;
+    std::unique_ptr<tap::ambi::dsp::format_converter> m_converter;
     long                                            m_channel_count{4};
 
   public:
@@ -39,7 +39,7 @@ class ambitap_format : public object<ambitap_format>, public mc_operator<> {
         if (!args.empty()) {
             order = std::clamp(static_cast<int>(args[0]), 0, 3);
         }
-        m_converter     = std::make_unique<ambitap::dsp::format_converter>(order);
+        m_converter     = std::make_unique<tap::ambi::dsp::format_converter>(order);
         m_channel_count = static_cast<long>(m_converter->channels());
     }
 
@@ -48,7 +48,7 @@ class ambitap_format : public object<ambitap_format>, public mc_operator<> {
                                 setter{MIN_FUNCTION{
                                     if (m_converter) {
                                         const std::string name = args[0];
-                                        using dir              = ambitap::dsp::format_direction;
+                                        using dir              = tap::ambi::dsp::format_direction;
                                         m_converter->set_direction(name == "fuma_to_ambix" ? dir::fuma_to_ambix
                                                                                            : dir::ambix_to_fuma);
                                     }

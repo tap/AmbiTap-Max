@@ -4,7 +4,7 @@
 ///
 /// The ambisonics order is a creation argument (default 1), and the output is a
 /// single **multichannel** signal carrying (order+1)^2 channels — one patch
-/// cord for the whole HOA bus. DSP lives in ambitap::dsp::encoder; this object
+/// cord for the whole HOA bus. DSP lives in tap::ambi::dsp::encoder; this object
 /// is min-api glue plus the Max `multichanneloutputs` negotiation (which min-api
 /// does not wrap, so we register it ourselves at class-setup time).
 // SPDX-License-Identifier: MIT
@@ -35,7 +35,7 @@ class ambitap_encode : public object<ambitap_encode>, public vector_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::encoder> m_encoder;
+    std::unique_ptr<tap::ambi::dsp::encoder> m_encoder;
     long                                   m_channel_count{4};
 
   public:
@@ -43,9 +43,9 @@ class ambitap_encode : public object<ambitap_encode>, public vector_operator<> {
     explicit ambitap_encode(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 0, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 0, tap::ambi::k_max_order);
         }
-        m_encoder       = std::make_unique<ambitap::dsp::encoder>(order);
+        m_encoder       = std::make_unique<tap::ambi::dsp::encoder>(order);
         m_channel_count = static_cast<long>(m_encoder->channels());
     }
 

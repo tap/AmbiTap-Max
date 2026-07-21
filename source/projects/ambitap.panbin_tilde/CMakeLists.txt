@@ -19,11 +19,11 @@ add_library(
     ${SOURCE_FILES}
 )
 
-# AmbiTap headers + AmbiTap::fft (the vendored Ooura rdft that the partitioned
+# AmbiTap headers + tap::dsp (the vendored Ooura rdft that the partitioned
 # convolver calls). No Eigen and no SOFA here: the HRIR is reconstructed from
 # the built-in SH-domain KEMAR tables, which is pure header math.
 target_include_directories(${PROJECT_NAME} PRIVATE "${AmbiTap_ROOT}/include")
-target_link_libraries(${PROJECT_NAME} PRIVATE AmbiTap::fft)
+target_link_libraries(${PROJECT_NAME} PRIVATE tap::dsp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 include(${C74_MIN_API_DIR}/script/min-posttarget.cmake)

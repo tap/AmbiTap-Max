@@ -53,8 +53,8 @@ class ambitap_distance : public object<ambitap_distance>, public mc_operator<> {
     /// air-absorption cues (matches dsp::doppler's delay slew).
     static constexpr float k_distance_slew = 1.0f / 1024.0f;
 
-    std::unique_ptr<ambitap::dsp::doppler> m_doppler;
-    std::unique_ptr<ambitap::dsp::nfc>     m_nfc;
+    std::unique_ptr<tap::ambi::dsp::doppler> m_doppler;
+    std::unique_ptr<tap::ambi::dsp::nfc>     m_nfc;
     long                                   m_channel_count{4};
     float                                  m_fs{48000.0f};
     float                                  m_distance_smooth{1.0f};
@@ -65,10 +65,10 @@ class ambitap_distance : public object<ambitap_distance>, public mc_operator<> {
     explicit ambitap_distance(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 1, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::k_max_order);
         }
-        m_doppler       = std::make_unique<ambitap::dsp::doppler>(order);
-        m_nfc           = std::make_unique<ambitap::dsp::nfc>(order);
+        m_doppler       = std::make_unique<tap::ambi::dsp::doppler>(order);
+        m_nfc           = std::make_unique<tap::ambi::dsp::nfc>(order);
         m_channel_count = static_cast<long>(m_nfc->channels());
         m_frame.assign(static_cast<size_t>(m_channel_count), 0.0f);
         m_lp_state.assign(static_cast<size_t>(m_channel_count), 0.0f);
@@ -178,7 +178,7 @@ class ambitap_distance : public object<ambitap_distance>, public mc_operator<> {
         const auto  in_ch  = input.channel_count();
         const auto  out_ch = output.channel_count();
         const long  n      = m_channel_count;
-        const float d_min  = ambitap::dsp::nfc::k_min_distance;
+        const float d_min  = tap::ambi::dsp::nfc::k_min_distance;
 
         const float d_target = std::max(static_cast<float>(static_cast<double>(distance)), d_min);
         const float d_ref    = std::max(static_cast<float>(static_cast<double>(reference_distance)), d_min);

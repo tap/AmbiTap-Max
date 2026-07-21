@@ -6,8 +6,8 @@
 ///
 /// Order is a creation argument (default 1, capped at 5 by the built-in HRTF).
 /// Input is one multichannel signal of (order+1)^2 channels; output is two
-/// signals (left, right). DSP lives in ambitap::dsp::binaural_renderer: a
-/// partitioned-FFT convolver bank (AmbiTap::fft) plus an async head-tracking
+/// signals (left, right). DSP lives in tap::ambi::dsp::binaural_renderer: a
+/// partitioned-FFT convolver bank (tap::dsp) plus an async head-tracking
 /// SH-rotation. Convolvers are (re)allocated for the host's signal vector size
 /// and sample rate in `dspsetup`; the audio path is wait-free. SOFA loading
 /// happens on the control thread: measurements are projected onto the SH basis
@@ -47,7 +47,7 @@ class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::binaural_renderer> m_renderer;
+    std::unique_ptr<tap::ambi::dsp::binaural_renderer> m_renderer;
     long                                             m_channels{4};
     long                                             m_block_size{0};
     std::vector<std::vector<float>>                  m_in_buffers; // [channel][block]
@@ -55,7 +55,7 @@ class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
     std::vector<float>                               m_left_buf;
     std::vector<float>                               m_right_buf;
 #ifdef AMBITAP_HAS_SOFA
-    std::unique_ptr<ambitap::hrtf_data> m_sofa; // raw measurements, file rate
+    std::unique_ptr<tap::ambi::hrtf_data> m_sofa; // raw measurements, file rate
 
     // Cap the decomposed FIR length: bounds convolver cost against
     // pathologically long measurement files.
@@ -67,9 +67,9 @@ class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
     explicit ambitap_binaural(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 1, ambitap::builtin_hrtf_order);
+            order = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::builtin_hrtf_order);
         }
-        m_renderer = std::make_unique<ambitap::dsp::binaural_renderer>(order);
+        m_renderer = std::make_unique<tap::ambi::dsp::binaural_renderer>(order);
         m_channels = static_cast<long>(m_renderer->channels());
     }
 
@@ -89,7 +89,7 @@ class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
                                    setter{MIN_FUNCTION{
                                        if (m_renderer) {
                                            const std::string name = args[0];
-                                           using projection       = ambitap::dsp::binaural_renderer::hrtf_projection;
+                                           using projection       = tap::ambi::dsp::binaural_renderer::hrtf_projection;
                                            m_renderer->set_projection(name == "magls" ? projection::magls
                                                                                       : projection::ls);
                                        }
@@ -113,8 +113,8 @@ class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
                                    return args;
                                }
                                try {
-                                   auto loaded = std::make_unique<ambitap::hrtf_data>(
-                                       ambitap::load_sofa(resolve_in_search_path(requested)));
+                                   auto loaded = std::make_unique<tap::ambi::hrtf_data>(
+                                       tap::ambi::load_sofa(resolve_in_search_path(requested)));
                                    m_sofa = std::move(loaded);
                                    apply_sofa_hrtf(); // no-op until dspsetup when not yet prepared
                                    return args;
@@ -243,7 +243,7 @@ class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
             if (m_sofa->sample_rate != host_rate) {
                 for (auto* ear : {&left, &right}) {
                     for (auto& fir : *ear) {
-                        fir = ambitap::resample_fir(fir.data(), fir.size(), m_sofa->sample_rate, host_rate);
+                        fir = tap::ambi::resample_fir(fir.data(), fir.size(), m_sofa->sample_rate, host_rate);
                     }
                 }
             }

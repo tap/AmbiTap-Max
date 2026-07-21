@@ -71,7 +71,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/source/min-api/script/min-package.cmake)
 # AmbiTap: the shared ambisonics library, pinned as the submodules/AmbiTap
 # submodule. Override with -DAmbiTap_ROOT=/path/to/AmbiTap to build against a
 # sibling checkout during development. Header-only for the math/dsp layers used
-# by most objects (binaural additionally needs AmbiTap::fft).
+# by most objects (binaural additionally needs tap::dsp).
 set(AmbiTap_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/submodules/AmbiTap"
     CACHE PATH "Path to the AmbiTap library source tree")
 if (NOT EXISTS "${AmbiTap_ROOT}/include/ambitap/ambitap.h")
@@ -80,7 +80,7 @@ endif ()
 
 # Build AmbiTap's targets so objects can pull in what they need:
 #  - Eigen3::Eigen   (rotate / decode / binaural matrix math)
-#  - AmbiTap::fft    (binaural convolution)
+#  - tap::dsp    (binaural convolution)
 #  - ambitap         (interface target; with SOFA on it carries libmysofa and
 #                     defines AMBITAP_HAS_SOFA for the binaural~ `sofa` attr)
 # Header-only objects (encode) just use ${AmbiTap_ROOT}/include directly.

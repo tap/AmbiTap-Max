@@ -31,7 +31,7 @@ class ambitap_energyvec : public object<ambitap_energyvec>, public mc_operator<>
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    ambitap::analysis::energy_vector m_estimator;
+    tap::ambi::analysis::energy_vector m_estimator;
 
   public:
     attribute<number> smoothing_time{this, "smoothing_time", 0.01,

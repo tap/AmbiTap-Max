@@ -31,7 +31,7 @@ class ambitap_vmic : public object<ambitap_vmic>, public mc_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::virtual_mic> m_mic;
+    std::unique_ptr<tap::ambi::dsp::virtual_mic> m_mic;
     long                                       m_channels{4};
     std::vector<float>                         m_in_frame;
 
@@ -39,9 +39,9 @@ class ambitap_vmic : public object<ambitap_vmic>, public mc_operator<> {
     explicit ambitap_vmic(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 1, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::k_max_order);
         }
-        m_mic      = std::make_unique<ambitap::dsp::virtual_mic>(order);
+        m_mic      = std::make_unique<tap::ambi::dsp::virtual_mic>(order);
         m_channels = static_cast<long>(m_mic->channels());
         m_in_frame.assign(static_cast<size_t>(m_channels), 0.0f);
     }

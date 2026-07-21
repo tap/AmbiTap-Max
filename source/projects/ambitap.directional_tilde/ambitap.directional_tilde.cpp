@@ -30,7 +30,7 @@ class ambitap_directional : public object<ambitap_directional>, public mc_operat
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::directional_loudness> m_loudness;
+    std::unique_ptr<tap::ambi::dsp::directional_loudness> m_loudness;
     long                                                m_channel_count{4};
     std::vector<float>                                  m_in_frame;
     std::vector<float>                                  m_out_frame;
@@ -39,9 +39,9 @@ class ambitap_directional : public object<ambitap_directional>, public mc_operat
     explicit ambitap_directional(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 1, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::k_max_order);
         }
-        m_loudness      = std::make_unique<ambitap::dsp::directional_loudness>(order);
+        m_loudness      = std::make_unique<tap::ambi::dsp::directional_loudness>(order);
         m_channel_count = static_cast<long>(m_loudness->channels());
         m_in_frame.assign(static_cast<size_t>(m_channel_count), 0.0f);
         m_out_frame.assign(static_cast<size_t>(m_channel_count), 0.0f);

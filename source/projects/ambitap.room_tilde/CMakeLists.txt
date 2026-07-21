@@ -9,10 +9,10 @@ include_directories("${C74_INCLUDES}")
 set(SOURCE_FILES ${PROJECT_NAME}.cpp)
 add_library(${PROJECT_NAME} MODULE ${SOURCE_FILES})
 
-# AmbiTap headers + AmbiTap::fft (the vendored Ooura rdft that the injection
+# AmbiTap headers + tap::dsp (the vendored Ooura rdft that the injection
 # convolution and absorption-FIR design call).
 target_include_directories(${PROJECT_NAME} PRIVATE "${AmbiTap_ROOT}/include")
-target_link_libraries(${PROJECT_NAME} PRIVATE AmbiTap::fft)
+target_link_libraries(${PROJECT_NAME} PRIVATE tap::dsp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 include(${C74_MIN_API_DIR}/script/min-posttarget.cmake)

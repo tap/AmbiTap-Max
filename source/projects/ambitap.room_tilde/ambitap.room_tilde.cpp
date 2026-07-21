@@ -4,7 +4,7 @@
 /// sound + image-source early reflections + a 16-line SH-domain FDN late
 /// tail. Order is a creation argument (default 1, max 3).
 ///
-/// DSP lives in ambitap::dsp::room — the real-time realization of the
+/// DSP lives in tap::ambi::dsp::room — the real-time realization of the
 /// architecture verified against the R1-R10 gates in the AmbiTap library's
 /// docs/PERCEPTUAL-VERIFICATION.md. Geometry / RT60 changes are rebuilt on
 /// the library's worker thread and crossfaded in; the audio path is
@@ -51,7 +51,7 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
     /// One-pole coefficient of the per-sample output-gain slew (~5 ms at 48 kHz).
     static constexpr float k_gain_slew = 1.0f / 256.0f;
 
-    std::unique_ptr<ambitap::dsp::room> m_room;
+    std::unique_ptr<tap::ambi::dsp::room> m_room;
     long                                m_channel_count{4};
     long                                m_block_size{0};
     float                               m_gain_smooth{1.0f};
@@ -65,9 +65,9 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
     explicit ambitap_room(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 0, ambitap::dsp::room::k_max_room_order);
+            order = std::clamp(static_cast<int>(args[0]), 0, tap::ambi::dsp::room::k_max_room_order);
         }
-        m_room          = std::make_unique<ambitap::dsp::room>(order);
+        m_room          = std::make_unique<tap::ambi::dsp::room>(order);
         m_channel_count = static_cast<long>(m_room->channels());
     }
 
@@ -200,7 +200,7 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
                                              "mid-band RT60 and a slightly different late texture (the tail stays "
                                              "level-calibrated either way). Rebuilds off-thread; may glitch briefly."},
                                  setter{MIN_FUNCTION{
-                                     using kind     = ambitap::dsp::room::absorption_kind;
+                                     using kind     = tap::ambi::dsp::room::absorption_kind;
                                      const bool iir = (symbol(args[0]) == symbol("iir"));
                                      if (m_room) {
                                          m_room->set_absorption_kind(iir ? kind::iir : kind::fir);
@@ -217,8 +217,8 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
                            }
                            const double hz  = args[0];
                            const double sec = args[1];
-                           for (size_t b = 0; b < ambitap::dsp::room::k_rt60_bands; ++b) {
-                               if (std::abs(ambitap::dsp::room::k_rt60_centers_hz[b] - hz) < 1.0) {
+                           for (size_t b = 0; b < tap::ambi::dsp::room::k_rt60_bands; ++b) {
+                               if (std::abs(tap::ambi::dsp::room::k_rt60_centers_hz[b] - hz) < 1.0) {
                                    m_room->set_rt60_band(b, static_cast<float>(sec));
                                    return {};
                                }
@@ -236,7 +236,7 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
                               if (args.size() < 6 || !m_room) {
                                   return {};
                               }
-                              std::array<float, ambitap::dsp::room::k_walls> c{};
+                              std::array<float, tap::ambi::dsp::room::k_walls> c{};
                               for (size_t w = 0; w < c.size(); ++w) {
                                   c[w] = static_cast<float>(static_cast<double>(args[w]));
                               }
