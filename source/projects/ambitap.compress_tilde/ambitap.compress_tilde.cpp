@@ -31,7 +31,7 @@ class ambitap_compress : public object<ambitap_compress>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::spatial_compressor> m_compressor;
-    long                                              m_channel_count{4};
+    long                                                m_channel_count{4};
 
   public:
     explicit ambitap_compress(const atoms& args = {}) {

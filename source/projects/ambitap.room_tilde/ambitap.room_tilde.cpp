@@ -52,12 +52,12 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
     static constexpr float k_gain_slew = 1.0f / 256.0f;
 
     std::unique_ptr<tap::ambi::dsp::room> m_room;
-    long                                m_channel_count{4};
-    long                                m_block_size{0};
-    float                               m_gain_smooth{1.0f};
-    std::vector<float>                  m_in_buf;
-    std::vector<std::vector<float>>     m_out_bufs; // [channel][block]
-    std::vector<float*>                 m_out_ptrs; // into m_out_bufs
+    long                                  m_channel_count{4};
+    long                                  m_block_size{0};
+    float                                 m_gain_smooth{1.0f};
+    std::vector<float>                    m_in_buf;
+    std::vector<std::vector<float>>       m_out_bufs; // [channel][block]
+    std::vector<float*>                   m_out_ptrs; // into m_out_bufs
 
   public:
     /// First creation argument is the ambisonics order (default 1, max 3 —

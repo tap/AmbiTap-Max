@@ -44,10 +44,10 @@ class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::decoder> m_decoder;
-    long                                   m_in_channels{4};
-    long                                   m_speaker_count{2};
-    std::vector<float>                     m_in_frame;
-    std::vector<float>                     m_out_frame;
+    long                                     m_in_channels{4};
+    long                                     m_speaker_count{2};
+    std::vector<float>                       m_in_frame;
+    std::vector<float>                       m_out_frame;
 
   public:
     /// Creation args: <order> <layout-name>.

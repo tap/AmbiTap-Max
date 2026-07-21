@@ -43,10 +43,10 @@ class ambitap_grid : public object<ambitap_grid>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::analysis::soundfield_grid> m_grid;
-    long                                                m_channel_count{4};
-    std::vector<float>                                  m_planar; // sized in dspsetup, reused (RT-safe)
-    std::vector<const float*>                           m_ptrs;
-    long                                                m_max_frames{0};
+    long                                                  m_channel_count{4};
+    std::vector<float>                                    m_planar; // sized in dspsetup, reused (RT-safe)
+    std::vector<const float*>                             m_ptrs;
+    long                                                  m_max_frames{0};
 
   public:
     /// First creation argument is the ambisonics order (default 1).

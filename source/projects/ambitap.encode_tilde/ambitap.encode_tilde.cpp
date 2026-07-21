@@ -36,7 +36,7 @@ class ambitap_encode : public object<ambitap_encode>, public vector_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::encoder> m_encoder;
-    long                                   m_channel_count{4};
+    long                                     m_channel_count{4};
 
   public:
     /// First creation argument is the ambisonics order (default 1).

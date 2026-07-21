@@ -31,9 +31,9 @@ class ambitap_doppler : public object<ambitap_doppler>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::doppler> m_doppler;
-    long                                   m_channel_count{4};
-    std::vector<float>                     m_in_frame;
-    std::vector<float>                     m_out_frame;
+    long                                     m_channel_count{4};
+    std::vector<float>                       m_in_frame;
+    std::vector<float>                       m_out_frame;
 
   public:
     explicit ambitap_doppler(const atoms& args = {}) {

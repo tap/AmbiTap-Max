@@ -31,9 +31,9 @@ class ambitap_directional : public object<ambitap_directional>, public mc_operat
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::directional_loudness> m_loudness;
-    long                                                m_channel_count{4};
-    std::vector<float>                                  m_in_frame;
-    std::vector<float>                                  m_out_frame;
+    long                                                  m_channel_count{4};
+    std::vector<float>                                    m_in_frame;
+    std::vector<float>                                    m_out_frame;
 
   public:
     explicit ambitap_directional(const atoms& args = {}) {

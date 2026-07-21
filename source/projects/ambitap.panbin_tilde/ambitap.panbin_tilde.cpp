@@ -226,7 +226,7 @@ class ambitap_panbin : public object<ambitap_panbin>, public vector_operator<> {
     std::unique_ptr<convolver_pair> build_pair() {
         float sh[tap::ambi::k_max_channel_count];
         tap::ambi::evaluate_sh(tap::ambi::builtin_hrtf_order, static_cast<float>(m_azimuth_value),
-                             static_cast<float>(m_elevation_value), sh);
+                               static_cast<float>(m_elevation_value), sh);
 
         std::vector<float> left(tap::ambi::builtin_hrtf_length, 0.0f);
         std::vector<float> right(tap::ambi::builtin_hrtf_length, 0.0f);

@@ -82,10 +82,10 @@ class ambitap_xtc : public object<ambitap_xtc>, public vector_operator<> {
     // the scheduler thread; the mutex serializes them — the audio thread
     // never takes it). m_design owns the filter design; its setters redesign
     // synchronously on this thread.
-    std::mutex        m_control_mutex;
+    std::mutex          m_control_mutex;
     tap::ambi::dsp::xtc m_design;
-    long              m_block_size{0};
-    double            m_sample_rate{0.0};
+    long                m_block_size{0};
+    double              m_sample_rate{0.0};
 
     // Control -> audio handoff (freshly built quad awaiting adoption) and
     // audio -> control return path (retired quad awaiting deletion).

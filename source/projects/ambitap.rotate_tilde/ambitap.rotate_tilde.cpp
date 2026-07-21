@@ -36,9 +36,9 @@ class ambitap_rotate : public object<ambitap_rotate>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::rotator> m_rotator;
-    long                                   m_channel_count{4};
-    std::vector<float>                     m_in_frame; // sized once, reused (RT-safe)
-    std::vector<float>                     m_out_frame;
+    long                                     m_channel_count{4};
+    std::vector<float>                       m_in_frame; // sized once, reused (RT-safe)
+    std::vector<float>                       m_out_frame;
 
   public:
     /// First creation argument is the ambisonics order (default 1).

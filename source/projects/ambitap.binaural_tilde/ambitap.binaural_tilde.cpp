@@ -48,12 +48,12 @@ class ambitap_binaural : public object<ambitap_binaural>, public mc_operator<> {
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
     std::unique_ptr<tap::ambi::dsp::binaural_renderer> m_renderer;
-    long                                             m_channels{4};
-    long                                             m_block_size{0};
-    std::vector<std::vector<float>>                  m_in_buffers; // [channel][block]
-    std::vector<const float*>                        m_in_ptrs;    // into m_in_buffers
-    std::vector<float>                               m_left_buf;
-    std::vector<float>                               m_right_buf;
+    long                                               m_channels{4};
+    long                                               m_block_size{0};
+    std::vector<std::vector<float>>                    m_in_buffers; // [channel][block]
+    std::vector<const float*>                          m_in_ptrs;    // into m_in_buffers
+    std::vector<float>                                 m_left_buf;
+    std::vector<float>                                 m_right_buf;
 #ifdef AMBITAP_HAS_SOFA
     std::unique_ptr<tap::ambi::hrtf_data> m_sofa; // raw measurements, file rate
 
