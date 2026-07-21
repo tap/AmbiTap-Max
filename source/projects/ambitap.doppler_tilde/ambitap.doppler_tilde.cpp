@@ -30,7 +30,7 @@ class ambitap_doppler : public object<ambitap_doppler>, public mc_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::doppler> m_doppler;
+    std::unique_ptr<tap::ambi::dsp::doppler> m_doppler;
     long                                   m_channel_count{4};
     std::vector<float>                     m_in_frame;
     std::vector<float>                     m_out_frame;
@@ -39,9 +39,9 @@ class ambitap_doppler : public object<ambitap_doppler>, public mc_operator<> {
     explicit ambitap_doppler(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 1, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::k_max_order);
         }
-        m_doppler       = std::make_unique<ambitap::dsp::doppler>(order);
+        m_doppler       = std::make_unique<tap::ambi::dsp::doppler>(order);
         m_channel_count = static_cast<long>(m_doppler->channels());
         m_in_frame.assign(static_cast<size_t>(m_channel_count), 0.0f);
         m_out_frame.assign(static_cast<size_t>(m_channel_count), 0.0f);

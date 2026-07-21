@@ -30,16 +30,16 @@ class ambitap_compress : public object<ambitap_compress>, public mc_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::spatial_compressor> m_compressor;
+    std::unique_ptr<tap::ambi::dsp::spatial_compressor> m_compressor;
     long                                              m_channel_count{4};
 
   public:
     explicit ambitap_compress(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 1, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::k_max_order);
         }
-        m_compressor    = std::make_unique<ambitap::dsp::spatial_compressor>(order);
+        m_compressor    = std::make_unique<tap::ambi::dsp::spatial_compressor>(order);
         m_channel_count = static_cast<long>(m_compressor->channels());
     }
 

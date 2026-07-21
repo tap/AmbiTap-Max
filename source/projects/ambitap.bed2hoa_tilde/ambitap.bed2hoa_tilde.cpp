@@ -44,7 +44,7 @@ class ambitap_bed2hoa : public object<ambitap_bed2hoa>, public mc_operator<> {
     explicit ambitap_bed2hoa(const atoms& args = {}) {
         int order = 1;
         if (!args.empty()) {
-            order = std::clamp(static_cast<int>(args[0]), 0, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 0, tap::ambi::k_max_order);
         }
 
         std::string layout_name = "surround_5_1";
@@ -54,18 +54,18 @@ class ambitap_bed2hoa : public object<ambitap_bed2hoa>, public mc_operator<> {
 
         auto speakers = layout_from_name(layout_name);
         if (speakers.empty()) {
-            speakers = ambitap::layouts::surround_5_1(); // unknown name -> 5.1
+            speakers = tap::ambi::layouts::surround_5_1(); // unknown name -> 5.1
         }
 
-        m_channel_count = static_cast<long>(ambitap::channel_count(order));
+        m_channel_count = static_cast<long>(tap::ambi::channel_count(order));
         m_speaker_count = static_cast<long>(speakers.size());
 
         // Static encoding matrix: gains[s][ch] = SH_ch at speaker direction s.
         m_gains.assign(static_cast<size_t>(m_speaker_count),
                        std::vector<double>(static_cast<size_t>(m_channel_count), 0.0));
-        float sh[ambitap::k_max_channel_count];
+        float sh[tap::ambi::k_max_channel_count];
         for (size_t s = 0; s < static_cast<size_t>(m_speaker_count); ++s) {
-            ambitap::evaluate_sh(order, speakers[s].azimuth, speakers[s].elevation, sh);
+            tap::ambi::evaluate_sh(order, speakers[s].azimuth, speakers[s].elevation, sh);
             for (size_t ch = 0; ch < static_cast<size_t>(m_channel_count); ++ch) {
                 m_gains[s][ch] = static_cast<double>(sh[ch]);
             }
@@ -116,8 +116,8 @@ class ambitap_bed2hoa : public object<ambitap_bed2hoa>, public mc_operator<> {
     long                             m_speaker_count{5};
     std::vector<std::vector<double>> m_gains; // [speaker][hoa channel]
 
-    static std::vector<ambitap::spherical_coord> layout_from_name(const std::string& name) {
-        using namespace ambitap::layouts;
+    static std::vector<tap::ambi::spherical_coord> layout_from_name(const std::string& name) {
+        using namespace tap::ambi::layouts;
         if (name == "stereo") {
             return stereo();
         }

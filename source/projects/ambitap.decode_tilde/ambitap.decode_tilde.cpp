@@ -11,7 +11,7 @@
 /// Runtime attributes `decoder_type` (mode_match / allrad / epad) and `max_re`
 /// only rebuild the decode matrix — they do not change the channel count. The
 /// SVD / T-design+VBAP construction runs off the audio thread
-/// (ambitap::dsp::decoder's async_rebuilder); the audio path reads wait-free.
+/// (tap::ambi::dsp::decoder's async_rebuilder); the audio path reads wait-free.
 // SPDX-License-Identifier: MIT
 // Copyright 2025-2026 Timothy Place.
 
@@ -43,7 +43,7 @@ class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
-    std::unique_ptr<ambitap::dsp::decoder> m_decoder;
+    std::unique_ptr<tap::ambi::dsp::decoder> m_decoder;
     long                                   m_in_channels{4};
     long                                   m_speaker_count{2};
     std::vector<float>                     m_in_frame;
@@ -54,7 +54,7 @@ class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
     explicit ambitap_decode(const atoms& args = {}) {
         int order = 1;
         if (args.size() >= 1) {
-            order = std::clamp(static_cast<int>(args[0]), 1, ambitap::k_max_order);
+            order = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::k_max_order);
         }
 
         std::string layout_name = "stereo";
@@ -64,10 +64,10 @@ class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
 
         auto speakers = layout_from_name(layout_name);
         if (speakers.empty()) {
-            speakers = ambitap::layouts::stereo(); // unknown name -> stereo
+            speakers = tap::ambi::layouts::stereo(); // unknown name -> stereo
         }
 
-        m_decoder       = std::make_unique<ambitap::dsp::decoder>(order);
+        m_decoder       = std::make_unique<tap::ambi::dsp::decoder>(order);
         m_in_channels   = static_cast<long>(m_decoder->input_channels());
         m_speaker_count = static_cast<long>(speakers.size());
         m_decoder->set_speakers(speakers); // triggers the first matrix build
@@ -125,8 +125,8 @@ class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
     }
 
   private:
-    static std::vector<ambitap::spherical_coord> layout_from_name(const std::string& name) {
-        using namespace ambitap::layouts;
+    static std::vector<tap::ambi::spherical_coord> layout_from_name(const std::string& name) {
+        using namespace tap::ambi::layouts;
         if (name == "stereo") {
             return stereo();
         }
@@ -154,14 +154,14 @@ class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
         return {};
     }
 
-    static ambitap::dsp::decoder_algorithm algorithm_from_name(const std::string& name) {
+    static tap::ambi::dsp::decoder_algorithm algorithm_from_name(const std::string& name) {
         if (name == "allrad") {
-            return ambitap::dsp::decoder_algorithm::allrad;
+            return tap::ambi::dsp::decoder_algorithm::allrad;
         }
         if (name == "epad") {
-            return ambitap::dsp::decoder_algorithm::epad;
+            return tap::ambi::dsp::decoder_algorithm::epad;
         }
-        return ambitap::dsp::decoder_algorithm::mode_match;
+        return tap::ambi::dsp::decoder_algorithm::mode_match;
     }
 
     static long mc_outputs(minwrap<ambitap_decode>* self, long /* outlet_index */) {

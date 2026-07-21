@@ -47,12 +47,12 @@ class ambitap_xtc : public object<ambitap_xtc>, public vector_operator<> {
     /// input = column. Built on the control thread; used (and only used) on
     /// the audio thread after ownership is handed over.
     struct convolver_quad {
-        ambitap::partitioned_convolver ll; // left speaker  <- left input
-        ambitap::partitioned_convolver lr; // left speaker  <- right input
-        ambitap::partitioned_convolver rl; // right speaker <- left input
-        ambitap::partitioned_convolver rr; // right speaker <- right input
+        tap::ambi::partitioned_convolver ll; // left speaker  <- left input
+        tap::ambi::partitioned_convolver lr; // left speaker  <- right input
+        tap::ambi::partitioned_convolver rl; // right speaker <- left input
+        tap::ambi::partitioned_convolver rr; // right speaker <- right input
 
-        convolver_quad(size_t block_size, const ambitap::dsp::xtc& design)
+        convolver_quad(size_t block_size, const tap::ambi::dsp::xtc& design)
             : ll(block_size, design.fir(0, 0).data(), design.fir(0, 0).size())
             , lr(block_size, design.fir(0, 1).data(), design.fir(0, 1).size())
             , rl(block_size, design.fir(1, 0).data(), design.fir(1, 0).size())
@@ -83,7 +83,7 @@ class ambitap_xtc : public object<ambitap_xtc>, public vector_operator<> {
     // never takes it). m_design owns the filter design; its setters redesign
     // synchronously on this thread.
     std::mutex        m_control_mutex;
-    ambitap::dsp::xtc m_design;
+    tap::ambi::dsp::xtc m_design;
     long              m_block_size{0};
     double            m_sample_rate{0.0};
 
@@ -185,7 +185,7 @@ class ambitap_xtc : public object<ambitap_xtc>, public vector_operator<> {
     message<> dumpfir{
         this, "dumpfir", "Dump the designed FIRs for the XTC designer widget.",
         MIN_FUNCTION{
-            m_dump.send("firinfo", m_design.sample_rate(), static_cast<int>(ambitap::dsp::xtc::latency_samples()),
+            m_dump.send("firinfo", m_design.sample_rate(), static_cast<int>(tap::ambi::dsp::xtc::latency_samples()),
                         m_design.design_gain_db(), m_design.makeup_gain());
             for (size_t speaker = 0; speaker < 2; ++speaker) {
                 for (size_t input = 0; input < 2; ++input) {

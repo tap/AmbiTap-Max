@@ -19,11 +19,11 @@ add_library(
     ${SOURCE_FILES}
 )
 
-# AmbiTap headers + Eigen (head-tracking rotation) + AmbiTap::fft (the vendored
+# AmbiTap headers + Eigen (head-tracking rotation) + tap::dsp (the vendored
 # Ooura rdft that the partitioned convolver calls) + the ambitap interface
 # target (carries libmysofa and the AMBITAP_HAS_SOFA define when SOFA is on).
 target_include_directories(${PROJECT_NAME} PRIVATE "${AmbiTap_ROOT}/include")
-target_link_libraries(${PROJECT_NAME} PRIVATE Eigen3::Eigen AmbiTap::fft ambitap)
+target_link_libraries(${PROJECT_NAME} PRIVATE Eigen3::Eigen tap::dsp ambitap)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 include(${C74_MIN_API_DIR}/script/min-posttarget.cmake)

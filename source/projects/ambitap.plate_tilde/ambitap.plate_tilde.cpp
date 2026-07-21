@@ -10,7 +10,7 @@
 /// tail density and decorrelation. Input channels beyond <inputs> are
 /// ignored; missing ones are treated as silence.
 ///
-/// DSP lives in ambitap::dsp::plate (header-only, wait-free process path, no
+/// DSP lives in tap::ambi::dsp::plate (header-only, wait-free process path, no
 /// worker thread). Every attribute is smoothed/click-free in the kernel. The
 /// kernel is 100% wet; this object adds the equal-power dry/wet `mix`, with
 /// dry mapped channel-wise over the first min(inputs, outputs) channels.
@@ -49,7 +49,7 @@ class ambitap_plate : public object<ambitap_plate>, public mc_operator<> {
     /// One-pole coefficient of the per-sample dry/wet slew (~5 ms at 48 kHz).
     static constexpr float k_mix_slew = 1.0f / 256.0f;
 
-    std::unique_ptr<ambitap::dsp::plate> m_plate;
+    std::unique_ptr<tap::ambi::dsp::plate> m_plate;
     long                                 m_in_channels{2};
     long                                 m_out_channels{2};
     long                                 m_block_size{0};
@@ -67,17 +67,17 @@ class ambitap_plate : public object<ambitap_plate>, public mc_operator<> {
         int outputs  = 2;
         int branches = 4;
         if (args.size() >= 1) {
-            inputs = std::clamp(static_cast<int>(args[0]), 1, ambitap::dsp::k_plate_max_inputs);
+            inputs = std::clamp(static_cast<int>(args[0]), 1, tap::ambi::dsp::k_plate_max_inputs);
         }
         if (args.size() >= 2) {
-            outputs = std::clamp(static_cast<int>(args[1]), 1, ambitap::dsp::k_plate_max_outputs);
+            outputs = std::clamp(static_cast<int>(args[1]), 1, tap::ambi::dsp::k_plate_max_outputs);
         }
         if (args.size() >= 3) {
-            branches = std::clamp(static_cast<int>(args[2]), ambitap::dsp::k_plate_min_branches,
-                                  ambitap::dsp::k_plate_max_branches);
+            branches = std::clamp(static_cast<int>(args[2]), tap::ambi::dsp::k_plate_min_branches,
+                                  tap::ambi::dsp::k_plate_max_branches);
         }
 
-        m_plate        = std::make_unique<ambitap::dsp::plate>(inputs, outputs, branches);
+        m_plate        = std::make_unique<tap::ambi::dsp::plate>(inputs, outputs, branches);
         m_in_channels  = static_cast<long>(m_plate->inputs());
         m_out_channels = static_cast<long>(m_plate->outputs());
     }
