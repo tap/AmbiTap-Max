@@ -158,5 +158,25 @@ foreach (project_dir ${PROJECT_DIRS})
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/source/projects/${project_dir}/CMakeLists.txt")
         message("Generating: ${project_dir}")
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/source/projects/${project_dir})
+        # C++20 everywhere: Min's posttarget pins each external to C++17 and the unit-test harness
+        # pins each _test target to C++17. Rather than override that per object, force C++20 on every
+        # target an object folder creates, in one place.
+        get_property(_proj_targets
+            DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/source/projects/${project_dir}
+            PROPERTY BUILDSYSTEM_TARGETS)
+        foreach (_t ${_proj_targets})
+            set_property(TARGET ${_t} PROPERTY CXX_STANDARD 20)
+            set_property(TARGET ${_t} PROPERTY CXX_STANDARD_REQUIRED ON)
+            # The min harness pins tests to C++17 because its bundled Catch calls
+            # std::uncaught_exception() — removed in C++20 (Apple's libc++ enforces it; libstdc++ still
+            # keeps it). On Apple it defines CATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS, forcing that
+            # removed singular form. Now that tests are C++20, cancel that opt-out (our option comes
+            # later on the command line and wins) so Catch uses std::uncaught_exceptions().
+            if (APPLE AND _t MATCHES "_test$")
+                target_compile_options(${_t} PRIVATE
+                    -UCATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS
+                    -DCATCH_CONFIG_CPP17_UNCAUGHT_EXCEPTIONS)
+            endif ()
+        endforeach ()
     endif ()
 endforeach ()
