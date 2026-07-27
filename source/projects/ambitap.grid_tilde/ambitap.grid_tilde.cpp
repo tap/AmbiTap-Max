@@ -35,7 +35,7 @@ class ambitap_grid : public object<ambitap_grid>, public mc_operator<> {
 
     inlet<>  m_in{this, "(multichannelsignal) HOA bus; bang to output the grid"};
     outlet<> m_thru{this, "(multichannelsignal) HOA bus passthrough", "signal"};
-    outlet<> m_grid_out{this, "(list) grid <rows> <cols> <peak_db> <values...> on bang"};
+    outlet<> m_grid_out{this, "(list) grid [rows] [cols] [peak_db] [values...] on bang"};
 
   private:
     // State lives ABOVE the attributes on purpose: min-api attribute

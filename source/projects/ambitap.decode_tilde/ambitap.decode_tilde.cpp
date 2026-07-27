@@ -29,7 +29,7 @@ using namespace c74::min;
 class ambitap_decode : public object<ambitap_decode>, public mc_operator<> {
   public:
     MIN_DESCRIPTION{"Decode a higher-order ambisonics bus to a loudspeaker layout. "
-                    "Creation args: <order> <layout>. The layout fixes the output channel "
+                    "Creation args: [order] [layout]. The layout fixes the output channel "
                     "count; the output is one multichannel signal of speaker feeds."};
     MIN_TAGS{"audio, ambisonics, spatial, mc"};
     MIN_AUTHOR{"Timothy Place"};

@@ -35,13 +35,13 @@
 	<methodlist>
 
 		<method name='reflections'>
-			<digest>Set the six wall reflection coefficients: reflections <x0 x1 y0 y1 z0 z1></digest>
-			<description>Set the six wall reflection coefficients: reflections <x0 x1 y0 y1 z0 z1>. </description>
+			<digest>Set the six wall reflection coefficients: reflections [x0 x1 y0 y1 z0 z1]</digest>
+			<description>Set the six wall reflection coefficients: reflections [x0 x1 y0 y1 z0 z1]. </description>
 		</method>
 
 		<method name='rt60band'>
-			<digest>Set one octave band's RT60: rt60band <center_hz> <seconds></digest>
-			<description>Set one octave band's RT60: rt60band <center_hz> <seconds>. </description>
+			<digest>Set one octave band's RT60: rt60band [center_hz] [seconds]</digest>
+			<description>Set one octave band's RT60: rt60band [center_hz] [seconds]. </description>
 		</method>
 
 	</methodlist>
@@ -119,6 +119,11 @@
 		<attribute name='source_x' get='1' set='1' type='float64' size='1' >
 			<digest>Source position x in meters from the room's origin corner</digest>
 			<description>Source position x in meters from the room's origin corner. </description>
+		</attribute>
+
+		<attribute name='absorption' get='1' set='1' type='symbol' size='1' >
+			<digest>Per-line loop absorption filter</digest>
+			<description>Per-line loop absorption filter. "fir" (default) uses the verified 255-tap linear-phase FIRs; "iir" swaps in one cheap first-order low-pass per line — markedly lower CPU, at the cost of approximate mid-band RT60 and a slightly different late texture (the tail stays level-calibrated either way). Rebuilds off-thread; may glitch briefly. </description>
 		</attribute>
 
 	</attributelist>

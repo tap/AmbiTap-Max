@@ -7,7 +7,7 @@
 <c74object name='ambitap.bed2hoa~' category='audio,  ambisonics,  spatial,  surround,  mc'>
 
 	<digest>Encode a channel-based surround bed to higher-order ambisonics (AmbiX: ACN/SN3D) by encoding each speaker feed at its canonical direction</digest>
-	<description>Encode a channel-based surround bed to higher-order ambisonics (AmbiX: ACN/SN3D) by encoding each speaker feed at its canonical direction. Creation args: <order> <layout>. </description>
+	<description>Encode a channel-based surround bed to higher-order ambisonics (AmbiX: ACN/SN3D) by encoding each speaker feed at its canonical direction. Creation args: [order] [layout]. </description>
 
 
 	<!--METADATA-->

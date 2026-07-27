@@ -7,7 +7,7 @@
 <c74object name='ambitap.plate~' category='audio,  reverb,  plate,  effects,  mc'>
 
 	<digest>Multichannel plate reverb (Dattorro/Griesinger tank)</digest>
-	<description>Multichannel plate reverb (Dattorro/Griesinger tank). Creation args: <inputs> <outputs> <branches>. One multichannel signal in (N channels), one out (M channels); channel counts are fixed at construction. Branches (2..8) sets the tank width — 2 is the classic stereo figure-8. </description>
+	<description>Multichannel plate reverb (Dattorro/Griesinger tank). Creation args: [inputs] [outputs] [branches]. One multichannel signal in (N channels), one out (M channels); channel counts are fixed at construction. Branches (2..8) sets the tank width — 2 is the classic stereo figure-8. </description>
 
 
 	<!--METADATA-->

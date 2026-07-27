@@ -7,7 +7,7 @@
 <c74object name='ambitap.decode~' category='audio,  ambisonics,  spatial,  mc'>
 
 	<digest>Decode a higher-order ambisonics bus to a loudspeaker layout</digest>
-	<description>Decode a higher-order ambisonics bus to a loudspeaker layout. Creation args: <order> <layout>. The layout fixes the output channel count; the output is one multichannel signal of speaker feeds. </description>
+	<description>Decode a higher-order ambisonics bus to a loudspeaker layout. Creation args: [order] [layout]. The layout fixes the output channel count; the output is one multichannel signal of speaker feeds. </description>
 
 
 	<!--METADATA-->
