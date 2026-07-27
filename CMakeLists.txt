@@ -37,23 +37,23 @@ endif ()
 string(REGEX REPLACE "(.*)/" "" THIS_PACKAGE_NAME "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if (APPLE)
-    if (${CMAKE_GENERATOR} MATCHES "Xcode")
-        if (${XCODE_VERSION} VERSION_LESS 10)
-            message(STATUS "Xcode 10 or higher is required. Please install from the Mac App Store.")
-            return ()
-        elseif (${XCODE_VERSION} VERSION_GREATER_EQUAL 12)
-            set(C74_BUILD_FAT YES)
-        endif ()
+    # Build universal binaries (Apple Silicon + Intel) by default. This replaced the legacy
+    # min-devkit block, which only went fat under Xcode >= 12 and otherwise fell back to
+    # ${CMAKE_SYSTEM_PROCESSOR} — so a local Ninja or Makefile build produced a SINGLE-ARCH
+    # external while CI (which passes the flag explicitly) produced a universal one. An
+    # explicitly-set CMAKE_OSX_ARCHITECTURES still wins, so CI is unaffected.
+    if (NOT CMAKE_OSX_ARCHITECTURES)
+        set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures" FORCE)
+        message(STATUS "CMAKE_OSX_ARCHITECTURES set to ${CMAKE_OSX_ARCHITECTURES}")
     endif ()
 
-    if (NOT CMAKE_OSX_ARCHITECTURES)
-        if (C74_BUILD_FAT)
-            set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "macOS architecture" FORCE)
-        else ()
-            set(CMAKE_OSX_ARCHITECTURES ${CMAKE_SYSTEM_PROCESSOR} CACHE STRING "macOS architecture" FORCE)
-        endif ()
-        message("CMAKE_OSX_ARCHITECTURES set to ${CMAKE_OSX_ARCHITECTURES}")
-    endif ()
+    # Minimum macOS is 11.0, tracking Max 9's system requirement. Min's min-pretarget.cmake
+    # force-pins CMAKE_OSX_DEPLOYMENT_TARGET to 10.11 in every object, and CMake has no
+    # per-target deployment property, so it cannot be set through that variable. Append the
+    # deployment flag globally instead — it propagates to every target added below, and the
+    # later flag wins on the compile/link command line.
+    add_compile_options(-mmacosx-version-min=11.0)
+    add_link_options(-mmacosx-version-min=11.0)
 endif ()
 
 # Min-API CMake helpers (SUBDIRLIST, package layout, pre/post target scripts).
