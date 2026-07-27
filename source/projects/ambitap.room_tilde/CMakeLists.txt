@@ -19,4 +19,8 @@ include(${C74_MIN_API_DIR}/script/min-posttarget.cmake)
 
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}_test.cpp")
     include(${C74_MIN_API_DIR}/test/min-object-unittest.cmake)
+    # The harness builds a SEPARATE ${PROJECT_NAME}_test executable, which does not
+    # inherit the target-scoped includes/libraries given to the external above.
+    target_include_directories(${PROJECT_NAME}_test PRIVATE "${AmbiTap_ROOT}/include")
+    target_link_libraries(${PROJECT_NAME}_test PRIVATE tap::dsp)
 endif ()
