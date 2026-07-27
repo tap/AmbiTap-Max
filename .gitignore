@@ -3,3 +3,10 @@ externals/*.mxo
 externals/*.mxe64
 .DS_Store
 javascript/
+
+# min-api's unit-test harness writes its executables and libmock_kernel into
+# <repo>/tests/ (CMAKE_RUNTIME_OUTPUT_DIRECTORY in min-object-unittest.cmake).
+# Build output only — the test sources live beside each object.
+/tests/
+# Externals from a local Linux build (not a shipping target).
+externals/*.mxl_*
