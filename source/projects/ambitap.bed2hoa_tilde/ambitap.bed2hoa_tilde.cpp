@@ -32,7 +32,7 @@ class ambitap_bed2hoa : public object<ambitap_bed2hoa>, public mc_operator<> {
   public:
     MIN_DESCRIPTION{"Encode a channel-based surround bed to higher-order ambisonics "
                     "(AmbiX: ACN/SN3D) by encoding each speaker feed at its canonical "
-                    "direction. Creation args: <order> <layout>."};
+                    "direction. Creation args: [order] [layout]."};
     MIN_TAGS{"audio, ambisonics, spatial, surround, mc"};
     MIN_AUTHOR{"Timothy Place"};
     MIN_RELATED{"ambitap.encode~, ambitap.decode~, ambitap.rotate~, ambitap.binaural~"};

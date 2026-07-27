@@ -30,7 +30,7 @@ using namespace c74::min;
 class ambitap_plate : public object<ambitap_plate>, public mc_operator<> {
   public:
     MIN_DESCRIPTION{"Multichannel plate reverb (Dattorro/Griesinger tank). Creation args: "
-                    "<inputs> <outputs> <branches>. One multichannel signal in (N channels), "
+                    "[inputs] [outputs] [branches]. One multichannel signal in (N channels), "
                     "one out (M channels); channel counts are fixed at construction. Branches "
                     "(2..8) sets the tank width — 2 is the classic stereo figure-8."};
     MIN_TAGS{"audio, reverb, plate, effects, mc"};

@@ -223,7 +223,7 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
                            }}};
 
     attribute<symbol> absorption{this, "absorption", "fir",
-                                 description{"Per-line loop absorption filter: \"fir\" (default) uses the verified "
+                                 description{"Per-line loop absorption filter. \"fir\" (default) uses the verified "
                                              "255-tap linear-phase FIRs; \"iir\" swaps in one cheap first-order "
                                              "low-pass per line — markedly lower CPU, at the cost of approximate "
                                              "mid-band RT60 and a slightly different late texture (the tail stays "
@@ -239,7 +239,7 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
 
     /// Per-band reverb time: rt60band <center_hz> <seconds>. Centers are the
     /// parameterized octave bands 250, 500, 1000, 2000, 4000 Hz.
-    message<> rt60band{this, "rt60band", "Set one octave band's RT60: rt60band <center_hz> <seconds>.",
+    message<> rt60band{this, "rt60band", "Set one octave band's RT60: rt60band [center_hz] [seconds].",
                        MIN_FUNCTION{
                            if (args.size() < 2 || !m_room) {
                                return {};
@@ -260,7 +260,7 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
     /// order: reflections <6 floats>. They shape the early-reflection levels
     /// and the tail's level calibration; RT60(f) is parameterized separately.
     message<> reflections{this, "reflections",
-                          "Set the six wall reflection coefficients: reflections <x0 x1 y0 y1 z0 z1>.",
+                          "Set the six wall reflection coefficients: reflections [x0 x1 y0 y1 z0 z1].",
                           MIN_FUNCTION{
                               if (args.size() < 6 || !m_room) {
                                   return {};
