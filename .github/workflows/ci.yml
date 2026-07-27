@@ -26,6 +26,12 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
+      # Min-level wrapper tests (attribute defaults, clamping, message plumbing)
+      # against min-api's mock kernel. macOS only: the mock kernel is
+      # Apple/Windows-specific, so this is the gate for the whole family.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
       - name: Verify 18 universal externals
         run: |
           set -euo pipefail
