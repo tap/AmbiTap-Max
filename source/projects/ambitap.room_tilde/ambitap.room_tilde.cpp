@@ -47,9 +47,28 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
     // construction invokes the custom setter with the default value, and
     // members are initialized in declaration order — everything a setter
     // touches must already be alive.
+    //
+    // The same rule bites between attributes, which is why the geometry is
+    // mirrored into plain members below: a setter must never read a SIBLING
+    // attribute, because an attribute declared later is not constructed yet
+    // when an earlier one's setter runs, and reading it trips an assert in
+    // min-api's attribute getter under a debug build.
 
     /// One-pole coefficient of the per-sample output-gain slew (~5 ms at 48 kHz).
     static constexpr float k_gain_slew = 1.0f / 256.0f;
+
+    /// Geometry defaults, mirroring dsp::room's own (the library's verified
+    /// seed-11 configuration). Named here so the attribute defaults and the
+    /// mirrored state below cannot drift apart.
+    static constexpr double k_dim_default[3]{7.10, 5.30, 3.10};
+    static constexpr double k_source_default[3]{3.674, 1.137, 1.977};
+    static constexpr double k_listener_default[3]{1.746, 1.711, 0.668};
+
+    /// Geometry mirrored as plain state, indexed x, y, z. Each setter writes its
+    /// own component and then pushes the whole triple from here.
+    double m_dim[3]{k_dim_default[0], k_dim_default[1], k_dim_default[2]};
+    double m_source[3]{k_source_default[0], k_source_default[1], k_source_default[2]};
+    double m_listener[3]{k_listener_default[0], k_listener_default[1], k_listener_default[2]};
 
     std::unique_ptr<tap::ambi::dsp::room> m_room;
     long                                  m_channel_count{4};
@@ -75,74 +94,84 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
     // seed-11 configuration); the setters run before m_room exists during
     // construction, so the two default sets must match.
 
-    attribute<number> dim_x{this, "dim_x", 7.10,
+    attribute<number> dim_x{this, "dim_x", k_dim_default[0],
                             description{"Room depth in meters (x, front axis). Clamped to 1..50 m."},
                             setter{MIN_FUNCTION{
                                 const double v = args[0];
-                                push_dimensions(v, dim_y, dim_z);
+                                m_dim[0]       = v;
+                                push_dimensions();
                                 return {v};
                             }}};
 
-    attribute<number> dim_y{this, "dim_y", 5.30,
+    attribute<number> dim_y{this, "dim_y", k_dim_default[1],
                             description{"Room width in meters (y, left axis). Clamped to 1..50 m."},
                             setter{MIN_FUNCTION{
                                 const double v = args[0];
-                                push_dimensions(dim_x, v, dim_z);
+                                m_dim[1]       = v;
+                                push_dimensions();
                                 return {v};
                             }}};
 
-    attribute<number> dim_z{this, "dim_z", 3.10, description{"Room height in meters (z, up axis). Clamped to 1..50 m."},
+    attribute<number> dim_z{this, "dim_z", k_dim_default[2],
+                            description{"Room height in meters (z, up axis). Clamped to 1..50 m."},
                             setter{MIN_FUNCTION{
                                 const double v = args[0];
-                                push_dimensions(dim_x, dim_y, v);
+                                m_dim[2]       = v;
+                                push_dimensions();
                                 return {v};
                             }}};
 
-    attribute<number> source_x{this, "source_x", 3.674,
+    attribute<number> source_x{this, "source_x", k_source_default[0],
                                description{"Source position x in meters from the room's origin corner."},
                                setter{MIN_FUNCTION{
                                    const double v = args[0];
-                                   push_source(v, source_y, source_z);
+                                   m_source[0]    = v;
+                                   push_source();
                                    return {v};
                                }}};
 
-    attribute<number> source_y{this, "source_y", 1.137,
+    attribute<number> source_y{this, "source_y", k_source_default[1],
                                description{"Source position y in meters from the room's origin corner."},
                                setter{MIN_FUNCTION{
                                    const double v = args[0];
-                                   push_source(source_x, v, source_z);
+                                   m_source[1]    = v;
+                                   push_source();
                                    return {v};
                                }}};
 
-    attribute<number> source_z{this, "source_z", 1.977,
+    attribute<number> source_z{this, "source_z", k_source_default[2],
                                description{"Source position z in meters from the room's origin corner."},
                                setter{MIN_FUNCTION{
                                    const double v = args[0];
-                                   push_source(source_x, source_y, v);
+                                   m_source[2]    = v;
+                                   push_source();
                                    return {v};
                                }}};
 
-    attribute<number> listener_x{this, "listener_x", 1.746,
+    attribute<number> listener_x{this, "listener_x", k_listener_default[0],
                                  description{"Listener position x in meters from the room's origin corner."},
                                  setter{MIN_FUNCTION{
                                      const double v = args[0];
-                                     push_listener(v, listener_y, listener_z);
+                                     m_listener[0]  = v;
+                                     push_listener();
                                      return {v};
                                  }}};
 
-    attribute<number> listener_y{this, "listener_y", 1.711,
+    attribute<number> listener_y{this, "listener_y", k_listener_default[1],
                                  description{"Listener position y in meters from the room's origin corner."},
                                  setter{MIN_FUNCTION{
                                      const double v = args[0];
-                                     push_listener(listener_x, v, listener_z);
+                                     m_listener[1]  = v;
+                                     push_listener();
                                      return {v};
                                  }}};
 
-    attribute<number> listener_z{this, "listener_z", 0.668,
+    attribute<number> listener_z{this, "listener_z", k_listener_default[2],
                                  description{"Listener position z in meters from the room's origin corner."},
                                  setter{MIN_FUNCTION{
                                      const double v = args[0];
-                                     push_listener(listener_x, listener_y, v);
+                                     m_listener[2]  = v;
+                                     push_listener();
                                      return {v};
                                  }}};
 
@@ -312,19 +341,25 @@ class ambitap_room : public object<ambitap_room>, public vector_operator<> {
     }
 
   private:
-    void push_dimensions(double x, double y, double z) {
+    // Each pushes the mirrored triple, so a setter never has to read a sibling
+    // attribute. During construction m_room does not exist yet and these are
+    // no-ops; the library starts from the same defaults (see above).
+    void push_dimensions() {
         if (m_room) {
-            m_room->set_room_dimensions(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
+            m_room->set_room_dimensions(static_cast<float>(m_dim[0]), static_cast<float>(m_dim[1]),
+                                        static_cast<float>(m_dim[2]));
         }
     }
-    void push_source(double x, double y, double z) {
+    void push_source() {
         if (m_room) {
-            m_room->set_source_position(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
+            m_room->set_source_position(static_cast<float>(m_source[0]), static_cast<float>(m_source[1]),
+                                        static_cast<float>(m_source[2]));
         }
     }
-    void push_listener(double x, double y, double z) {
+    void push_listener() {
         if (m_room) {
-            m_room->set_listener_position(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
+            m_room->set_listener_position(static_cast<float>(m_listener[0]), static_cast<float>(m_listener[1]),
+                                          static_cast<float>(m_listener[2]));
         }
     }
 
