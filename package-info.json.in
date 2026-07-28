@@ -1,0 +1,20 @@
+{
+	"name": "AmbiTap",
+	"version": "@GIT_VERSION_MAJ@.@GIT_VERSION_MIN@.@GIT_VERSION_SUB@",
+	"author": "Timothy Place",
+	"description": "Ambisonics externals for Max/MSP, built on the AmbiTap library.",
+	"tags": ["ambisonics", "audio", "spatial", "mc"],
+	"max_version_min": "9.0",
+	"max_version_max": "none",
+	"os": {
+		"macintosh": {
+			"platform": ["x64", "arm64"],
+			"min_version": "11.0"
+		},
+		"windows": {
+			"platform": ["x64"],
+			"min_version": "none"
+		}
+	},
+	"website": "https://github.com/tap/AmbiTap-Max"
+}
