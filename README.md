@@ -102,29 +102,32 @@ Early scaffold. Objects landed so far (multichannel, order as a creation arg):
 ```
 AmbiTap-Max/
 ├── CMakeLists.txt              package build (min-devkit convention)
-├── package-info.json
+├── package-info.json.in       → package-info.json (generated, gitignored)
 ├── source/
-│   ├── min-api/    → Cycling '74 min-api   (dev: symlink; repo: submodule)
-│   ├── min-lib/    → Cycling '74 min-lib   (dev: symlink; repo: submodule)
+│   ├── min-api/    → Cycling '74 min-api    (git submodule)
 │   └── projects/<object>/      one external each (.cpp + CMakeLists.txt)
+├── submodules/
+│   └── AmbiTap/    → the AmbiTap DSP library (git submodule)
 └── externals/                  built .mxo bundles
 ```
 
-AmbiTap is found at the sibling `../AmbiTap` by default; override with
-`-DAmbiTap_ROOT=/path/to/AmbiTap`.
+AmbiTap is found at `submodules/AmbiTap` by default; override with
+`-DAmbiTap_ROOT=/path/to/AmbiTap` to build against a sibling checkout during
+development.
 
 ## Build
 
 ```bash
+git clone --recursive https://github.com/tap/AmbiTap-Max.git
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 # externals land in externals/ (e.g. ambitap.encode_tilde.mxo → object ambitap.encode~)
 # v8ui widget bundles land in javascript/ (e.g. ambitap.panner.js for [v8ui])
+ctest --test-dir build    # min-api mock-kernel wrapper tests
 ```
 
-Requires the Cycling '74 min-api/min-lib under `source/` (currently symlinked
-from an installed Min-DevKit; will be git submodules once this is a repo) and a
-sibling AmbiTap checkout.
+On macOS the externals build **universal (arm64 + x86_64)** by default — never
+ship a single-arch external.
 
 The build also requires **node/npm**: the AmbiTap UI layer's v8ui widget
 bundles (panner, heatmap, doa, meters, rotation, layout, roomdesigner,
