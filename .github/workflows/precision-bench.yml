@@ -1,0 +1,121 @@
+name: float32/vDSP decision bench (temporary)
+
+# TEMPORARY measurement, not a gate — DELETE THIS FILE once the precision
+# decision is made.
+#
+# The AmbiTap-Max binaural externals use tap::ambi::partitioned_convolver,
+# which is basic_partitioned_convolver<double, real_fft>. Double is ALWAYS
+# Ooura in DspTap, so although TAP_DSP_FFT_ACCELERATE defaults ON here and the
+# configure line prints "float32 FFT backend = Apple vDSP", vDSP is never
+# actually called. Putting these externals on vDSP therefore is not a build
+# flag: it means moving the convolver to float32, which is a numerics decision.
+#
+# So measure the win before paying for it, and measure it SPLIT, because the
+# two halves have very different costs to adopt:
+#
+#   double + Ooura   what ships today
+#   float  + Ooura   the precision change alone — no dependency on Apple at all
+#   float  + vDSP    the precision change plus Apple's backend
+#
+# Intel results (local, macOS 15.7.7) said most of the win is the precision
+# change and vDSP only pulls ahead on SHORT impulse responses:
+#
+#   128 taps    float+vDSP is 1.6-2.4x faster than float+Ooura
+#   8192 taps   0.97-1.27x   (a wash)
+#   32768 taps  0.93-1.26x   (a wash)
+#
+# Apple Silicon is where the users are and where vDSP is tuned, so this job
+# re-runs it there. The fourth build answers a question the Intel run could
+# not: whether the 32-byte skew DspTap now uses to select the ACCURATE vDSP
+# kernel (tap/DspTap#10) costs performance versus the 64-byte-aligned one it
+# used to land on. If the accurate kernel is also slower, that belongs in the
+# decision.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['bench/**']
+
+jobs:
+  precision-bench:
+    name: convolver precision/backend bench (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Record host identity
+        run: |
+          sysctl -n machdep.cpu.brand_string
+          sysctl -n hw.model
+          sysctl -n hw.ncpu
+          sw_vers
+          cc --version | head -2
+
+      # AmbiTap's dsptap pin predates the vDSP work, so pin the CI checkout
+      # forward to the kernel-selection fix. This is a build-time override for
+      # the measurement only — no submodule pin is changed in either repo.
+      - name: Use the current DspTap for the measurement
+        run: |
+          set -eu
+          cd submodules/AmbiTap/submodules/dsptap
+          git fetch -q origin main
+          git checkout -q ff6fc6c
+          git log --oneline -1
+
+      - name: Build and run
+        run: |
+          set -eu
+          root=$PWD
+          amb=submodules/AmbiTap
+          dsp=$amb/submodules/dsptap
+          cc -O2 -c "$dsp/third_party/ooura/fftsg.c"       -o /tmp/fftsg.o
+          cc -O2 -c "$dsp/third_party/ooura/fftsg_float.c" -o /tmp/fftsg_float.o
+
+          build() { # name, extra flags...
+            name=$1; shift
+            c++ -std=c++20 -O2 -I"$amb/include" -I"$dsp/include" "$@" \
+              bench/convolver_precision_bench.cpp /tmp/fftsg.o /tmp/fftsg_float.o \
+              -o "/tmp/bench_$name"
+          }
+
+          build ooura
+          build vdsp -DTAP_DSP_FFT_ACCELERATE -framework Accelerate
+
+          # Fourth build: the accurate-kernel skew defeated, so the vDSP timing
+          # comes from the 64-byte-aligned kernel instead. Asserts its patch
+          # site so a silent no-op cannot masquerade as "no difference".
+          cp "$dsp/include/tap/dsp/fft.h" /tmp/fft.h.orig
+          python3 - "$dsp/include/tap/dsp/fft.h" <<'PY'
+          import sys
+          p = sys.argv[1]
+          s = open(p).read()
+          old = 'return reinterpret_cast<float*>(up + k_skew_bytes);'
+          assert s.count(old) == 1, f'patch site found {s.count(old)} times, expected 1'
+          open(p, 'w').write(s.replace(old, 'return reinterpret_cast<float*>(up);'))
+          print('patched: skew removed, vDSP will take the 64-byte-aligned kernel')
+          PY
+          build vdsp_aligned -DTAP_DSP_FFT_ACCELERATE -framework Accelerate
+          cp /tmp/fft.h.orig "$dsp/include/tap/dsp/fft.h"
+
+          {
+            echo "## Convolver: double vs float32, Ooura vs vDSP"
+            echo
+            echo "Each block reports double+Ooura (what ships) against the float32"
+            echo "path of that build, so the 'float+' column changes meaning per block."
+            echo
+            echo '### float32 = Ooura (precision change only, no Apple dependency)'
+            echo '```'
+            /tmp/bench_ooura
+            echo '```'
+            echo '### float32 = vDSP, accurate kernel (DspTap#10, as shipped)'
+            echo '```'
+            /tmp/bench_vdsp
+            echo '```'
+            echo '### float32 = vDSP, 64-byte-aligned kernel (the INACCURATE one, timing only)'
+            echo '```'
+            /tmp/bench_vdsp_aligned
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
