@@ -5,18 +5,17 @@
 // Copyright 2025-2026 Timothy Place.
 
 #include "c74_min_unittest.h" // required unit-test header (defines main via Catch)
-// The object source is included second on purpose: min-api requires the
-// Catch header to come first, and "ambitap." sorts ahead of it.
-#include "ambitap.mirror_tilde.cpp" // include the object source so we can instantiate it
-
+// This comment ends the include block on purpose: min-api requires the Catch header
+// first, and regrouping would sort the "ambitap." object source ahead of it.
 #include <vector>
+
+#include "ambitap.mirror_tilde.cpp" // include the object source so we can instantiate it
 
 namespace {
 
     // Drive the vector operator directly: `in_channels` inputs each carrying a distinct
     // constant (ch+1) into `out_channels` outputs, returning frame 0 per output channel.
-    std::vector<double> mirror_frame(ambitap_mirror& object, long in_channels, long out_channels,
-                                     long frames = 4) {
+    std::vector<double> mirror_frame(ambitap_mirror& object, long in_channels, long out_channels, long frames = 4) {
         std::vector<std::vector<double>> in(in_channels);
         std::vector<double*>             ins(in_channels);
         for (long ch = 0; ch < in_channels; ++ch) {
@@ -30,8 +29,8 @@ namespace {
             outs[ch] = out[ch].data();
         }
 
-        c74::min::audio_bundle input {ins.data(), in_channels, frames};
-        c74::min::audio_bundle output {outs.data(), out_channels, frames};
+        c74::min::audio_bundle input{ins.data(), in_channels, frames};
+        c74::min::audio_bundle output{outs.data(), out_channels, frames};
         object(input, output);
 
         std::vector<double> frame0(out_channels);
@@ -57,7 +56,7 @@ SCENARIO("ambitap.mirror~ instantiates with the documented defaults") {
         }
         THEN("the bus indeed passes through untouched") {
             auto frame = mirror_frame(my_object, 4, 4);
-            REQUIRE(frame == std::vector<double> {1.0, 2.0, 3.0, 4.0});
+            REQUIRE(frame == std::vector<double>{1.0, 2.0, 3.0, 4.0});
         }
     }
 }
@@ -91,21 +90,21 @@ SCENARIO("ambitap.mirror~ forwards flips to the kernel as per-channel SH signs")
             my_object.flip_lr = true;
             THEN("only Y (ACN 1) changes sign") {
                 auto frame = mirror_frame(my_object, 4, 4);
-                REQUIRE(frame == std::vector<double> {1.0, -2.0, 3.0, 4.0});
+                REQUIRE(frame == std::vector<double>{1.0, -2.0, 3.0, 4.0});
             }
         }
         WHEN("flip_ud is on") {
             my_object.flip_ud = true;
             THEN("only Z (ACN 2) changes sign") {
                 auto frame = mirror_frame(my_object, 4, 4);
-                REQUIRE(frame == std::vector<double> {1.0, 2.0, -3.0, 4.0});
+                REQUIRE(frame == std::vector<double>{1.0, 2.0, -3.0, 4.0});
             }
         }
         WHEN("flip_fb is on") {
             my_object.flip_fb = true;
             THEN("only X (ACN 3) changes sign") {
                 auto frame = mirror_frame(my_object, 4, 4);
-                REQUIRE(frame == std::vector<double> {1.0, 2.0, 3.0, -4.0});
+                REQUIRE(frame == std::vector<double>{1.0, 2.0, 3.0, -4.0});
             }
         }
         WHEN("the flip is turned back off") {
@@ -113,7 +112,7 @@ SCENARIO("ambitap.mirror~ forwards flips to the kernel as per-channel SH signs")
             my_object.flip_lr = false;
             THEN("the bus passes through untouched again") {
                 auto frame = mirror_frame(my_object, 4, 4);
-                REQUIRE(frame == std::vector<double> {1.0, 2.0, 3.0, 4.0});
+                REQUIRE(frame == std::vector<double>{1.0, 2.0, 3.0, 4.0});
             }
         }
     }

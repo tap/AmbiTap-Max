@@ -5,11 +5,11 @@
 // Copyright 2025-2026 Timothy Place.
 
 #include "c74_min_unittest.h" // required unit-test header (defines main via Catch)
-// The object source is included second on purpose: min-api requires the
-// Catch header to come first, and "ambitap." sorts ahead of it.
-#include "ambitap.encode_tilde.cpp" // include the object source so we can instantiate it
-
+// This comment ends the include block on purpose: min-api requires the Catch header
+// first, and regrouping would sort the "ambitap." object source ahead of it.
 #include <vector>
+
+#include "ambitap.encode_tilde.cpp" // include the object source so we can instantiate it
 
 namespace {
 
@@ -28,8 +28,8 @@ namespace {
             outs[ch] = out[ch].data();
         }
 
-        c74::min::audio_bundle input {ins, 1, frames};
-        c74::min::audio_bundle output {outs.data(), channels, frames};
+        c74::min::audio_bundle input{ins, 1, frames};
+        c74::min::audio_bundle output{outs.data(), channels, frames};
         object(input, output);
 
         std::vector<double> frame0(channels);
