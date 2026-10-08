@@ -1,4 +1,4 @@
-# AmbiTap-Max
+# <picture><source media="(prefers-color-scheme: dark)" srcset=".github/icon-dark.svg"><img src=".github/icon-light.svg" width="40" height="40" alt="" align="top"></picture> AmbiTap-Max
 
 [![CI](https://github.com/tap/AmbiTap-Max/actions/workflows/ci.yml/badge.svg)](https://github.com/tap/AmbiTap-Max/actions/workflows/ci.yml)
 
